@@ -23,7 +23,7 @@
 #define C_SCOPE 8	 /* 照準 */
 #define C_SHOT  9	 /* 発射 */
 
-#define CT_MAXNUM 8	/* キャラクターの最大数 */
+#define CT_MAXNUM 7	/* キャラクターの最大数 */
 #define MAX_COMMAND 4	/* コマンドの最大格納数 */
 #define MAX_COUNT 50	/* 最大カウント、減らすほど速度up */
 
