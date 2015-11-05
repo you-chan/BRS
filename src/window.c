@@ -160,7 +160,7 @@ void DrawShip()
 
 	for(i=0; i<CT_NUM; i++){
 		if(gChara[i].state == LIVING){
-			rect.src.x = ((gChara[i].dir % 180) % 45) / 5 * S_SIZE;
+			rect.src.x = (((gChara[i].dir % 180) % 45) / 5 * S_SIZE);
 			rect.src.y = ((gChara[i].dir % 180) / 45) * S_SIZE;
 			rect.src.w = rect.src.h = S_SIZE;
 			rect.dst.x = gChara[i].pos.x;
@@ -168,6 +168,9 @@ void DrawShip()
 			SDL_BlitSurface(ShipWindow[i], &(rect.src), gMainWindow, &(rect.dst));
 		}
 	}
+
+	if(gChara[0].state == LIVING)
+		filledCircleColor(gMainWindow, gChara[0].pos.x+S_SIZE/2, gChara[0].pos.y+S_SIZE/2, 10, 0xFFFFFFF); //自分を写す
 }
 
 /*****************************************************************
@@ -179,9 +182,9 @@ void DrawShip()
 void DrawShot()
 {
 	int i;
-	for(i=0; i<CT_NUM; i++){
-		if(gChara[i].command[nowcommand] == C_SHOT && gChara[i].shotflg == 1 && count)
-			filledCircleColor(gMainWindow, gChara[i].shotpos.x, gChara[i].shotpos.y, 10, 0xFF0000FF);
+	for(i=0; i<SHOT_MAXNUM; i++){
+		if(gShot[i].state == LIVING)
+			filledCircleColor(gMainWindow, gShot[i].pos.x, gShot[i].pos.y, 10, 0xFF0000FF);
 	}
 }
 
@@ -216,12 +219,12 @@ void DrawCommand()
 		boxColor(gMainWindow, WIDTH/4, HEIGHT/3, WIDTH/4+C_SIZE, HEIGHT/3+C_SIZE, 0x00000040);
 
 	/* 選択したコマンドの描画 */
-	for(i=0; i<4; i++){
+	for(i=0; i<MAX_COMMAND; i++){
 		if(gChara[0].command[i] != -1){
 			rect.src.x = gChara[0].command[i] * C_SIZE;
 			rect.src.y = 0;
 			rect.src.w = rect.src.h = C_SIZE;
-			rect.dst.x = (i + 2) * WIDTH / 8;
+			rect.dst.x = WIDTH / 4 + C_SIZE * i * 4 / MAX_COMMAND;
 			rect.dst.y = HEIGHT / 12;
 			SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
 		}
@@ -336,13 +339,13 @@ void WindowEvent(SDLKey key)
 				//COMはとりあえずランダムにコマンドを決定
 				for(i=1; i<CT_NUM; i++){
 					for(j=0; j<MAX_COMMAND; j++)
-						/*
+						///*
 						if(j % 2 == 0)
 							gChara[i].command[j] = C_SCOPE;
 						else
 							gChara[i].command[j] = C_SHOT;
-							*/
-						gChara[i].command[j] = rand() % 10;
+						// */
+						//gChara[i].command[j] = rand() % 10;
 				}
 			}
 		}

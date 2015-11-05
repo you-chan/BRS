@@ -70,7 +70,7 @@ int GameMain()
     	if(now >= interval){
 			TimerEvent(++time);
 			/* 0.04秒(25fps)ごとにタイマー処理するよう設定 */
-			interval = now + 20;
+			interval = now + 40;
     	}
     }
     return gState;
