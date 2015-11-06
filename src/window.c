@@ -32,6 +32,7 @@ typedef struct {
 
 static void DrawShip();
 static void DrawShot();
+static void DrawHP();
 static void DrawCommand();
 static void DrawResult();
 static void WindowEvent(SDLKey key);
@@ -144,6 +145,7 @@ void DrawMain()
 		DrawCommand();
 	else if(mState == MAIN_MOVE) //コマンド適用
 		DrawShot();
+		//DrawHP();
 	SDL_Flip(gMainWindow);
 }
 
@@ -166,11 +168,40 @@ void DrawShip()
 			rect.dst.x = gChara[i].pos.x;
 			rect.dst.y = gChara[i].pos.y;
 			SDL_BlitSurface(ShipWindow[i], &(rect.src), gMainWindow, &(rect.dst));
+
+			//HPを表す四角形を描画
+			boxColor(gMainWindow, gChara[i].pos.x , gChara[i].pos.y + S_SIZE, gChara[i].pos.x + gChara[i].HP ,gChara[i].pos.y + S_SIZE + 10 , 0xff000080);
+			rectangleColor(gMainWindow, gChara[i].pos.x, gChara[i].pos.y + S_SIZE, gChara[i].pos.x + gChara[i].HP ,gChara[i].pos.y + S_SIZE + 10 , 0xff000080);
+
 		}
 	}
 
 	if(gChara[0].state == LIVING)
 		filledCircleColor(gMainWindow, gChara[0].pos.x+S_SIZE/2, gChara[0].pos.y+S_SIZE/2, 10, 0xFFFFFFF); //自分を写す
+}
+
+/*****************************************************************
+関数名 : DrawHP
+機能	: 体力を表す四角形を表示
+引数	: なし
+出力	: なし
+*****************************************************************/
+void DrawHP()
+{
+	int i;
+	int y1 = 0;
+	int y2 = 10;
+
+	for(i=0; i<CT_NUM; i++){
+		if( gChara[i].state == LIVING ){
+			boxColor(gMainWindow, 0, y1, gChara[i].HP * 2, y2, 0xff000080);
+			rectangleColor(gMainWindow, 0, y1, gChara[i].HP * 2, y2, 0x00000080);
+		}
+		else
+			stringColor(gMainWindow, 0, y1, "DEAD", 0xff000080);
+		y1 += 30;
+		y2 += 30;
+	}
 }
 
 /*****************************************************************
@@ -339,13 +370,13 @@ void WindowEvent(SDLKey key)
 				//COMはとりあえずランダムにコマンドを決定
 				for(i=1; i<CT_NUM; i++){
 					for(j=0; j<MAX_COMMAND; j++)
-						///*
+						/*
 						if(j % 2 == 0)
 							gChara[i].command[j] = C_SCOPE;
 						else
 							gChara[i].command[j] = C_SHOT;
-						// */
-						//gChara[i].command[j] = rand() % 10;
+						*/
+						gChara[i].command[j] = rand() % 10;
 				}
 			}
 		}

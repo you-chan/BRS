@@ -45,6 +45,7 @@ void InitMain()
 		gChara[i].pos.y = rand() % (HEIGHT-S_SIZE);
 		gChara[i].dir = 0;//rand() % 360;
 		gChara[i].state = LIVING;
+		gChara[i].HP = 100; //とりあえず適当に体力を設定
 		for(j=0; j<MAX_COMMAND; j++)
 			gChara[i].command[j] = -1;
 	}
@@ -55,6 +56,7 @@ void InitMain()
 		gShot[i].pos.x = gShot[i].pos.y = gShot[i].dir = 0;
 		gShot[i].state = DEAD;
 	}
+
 
 	count = 0;
 	nowcommand = 0;
@@ -232,8 +234,11 @@ void MoveShot()
 						newpos.x >= gChara[j].pos.x && newpos.x <= gChara[j].pos.x + S_SIZE &&
 						newpos.y >= gChara[j].pos.y && newpos.y <= gChara[j].pos.y + S_SIZE){
 					gShot[i].state = DEAD;
-					gChara[j].state = DEAD;
-					restplayer--;
+					gChara[j].HP  -= 25;
+					if( gChara[j].HP <= 0 ){
+						gChara[j].state = DEAD;
+						restplayer--;
+					}
 					if(restplayer == 1){
 						CheckWinner();
 						mState = MAIN_RESULT;

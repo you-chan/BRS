@@ -70,7 +70,8 @@ typedef struct{
     int goaldir;				/* 変更後の角度 */
     int speed;					/* 速さ */
     int command[MAX_COMMAND]; 	/* コマンドの格納 */
-	State state;
+	State state;				/*状態　LIVING = 1, DEAD = 0*/
+	int HP;						/*体力*/
 } CharaInfo;
 
 /* 玉の情報 */
