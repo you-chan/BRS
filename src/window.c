@@ -15,6 +15,7 @@ static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
+static char ArrowImgFile[] = "img/arrow.png";
 static char DecideImgFile[] = "img/decide.png";
 static char CommandImgFile[]    = "img/command01.png";
 static char miniCommandImgFile[]    = "img/command02.png";
@@ -24,8 +25,9 @@ static SDL_Surface *TitleWindow;
 static SDL_Surface *ResultWindow[2];
 static SDL_Surface *ShipWindow[MAX_CT];
 static SDL_Surface *GunWindow;
-static SDL_Surface *DecideWindow;
 static SDL_Surface *ArmorWindow;
+static SDL_Surface *ArrowWindow;
+static SDL_Surface *DecideWindow;
 static SDL_Surface *CommandWindow;
 static SDL_Surface *miniCommandWindow;
 static SDL_Joystick *joystick; //ジョイスティックを特定・利用するための構造体
@@ -91,6 +93,12 @@ int InitWindow()
     		printf("failed to open armor image.");
     	    return -1;
     	}
+
+    ArrowWindow = IMG_Load(ArrowImgFile);
+        if(ArrowWindow == NULL){
+        	printf("failed to open arrow image.");
+        	return -1;
+        }
 
     DecideWindow = IMG_Load(DecideImgFile);
    		if(DecideWindow == NULL){
@@ -158,25 +166,33 @@ void DrawTitle()
 *****************************************************************/
 void DrawEdit()
 {
-	Rect rect = {{0, 0, 100, 100}, {F_WIDTH/2-100/2, 0}}; //とりあえず100*100
+	Rect rect = {{0, 0, 100, 320}, {F_WIDTH/8, 5 * HEIGHT /8 - 110}}; //とりあえず100*100
 	/* 背景を白にする */
 	SDL_FillRect(gMainWindow,NULL,0x808080);
 	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
+
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.dst.x = 3 * F_WIDTH /8;
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+
 	rect.src.x = gChara[0].gun*100;
-	rect.dst.y = HEIGHT /8;
+	rect.src.y = 0;
+	rect.src.w = rect.src.h = 100;
+	rect.dst.x = 1 * F_WIDTH /8;
+	rect.dst.y = 5 * HEIGHT /8;
 	SDL_BlitSurface(GunWindow, &(rect.src), gMainWindow, &(rect.dst));
 	rect.src.x = gChara[0].armor*100;
-	rect.dst.y = 3 * HEIGHT /8;
+	rect.dst.x = 3 * F_WIDTH /8;
 	SDL_BlitSurface(ArmorWindow, &(rect.src), gMainWindow, &(rect.dst));
 	rect.src.x = 0;
-	rect.dst.y = 5 * HEIGHT /8;
+	rect.dst.x = 5 * F_WIDTH /8;
 	SDL_BlitSurface(DecideWindow, &(rect.src), gMainWindow, &(rect.dst));
 
 	//100 + i * (HEIGHT - 3 * 100) / (MAX_EDIT - 1);
 
 	/*選択中でない装備タブを灰色に*/
-	boxColor(gMainWindow, F_WIDTH/2-100/2, HEIGHT*(((eState+1)*2+1)%6)/8, F_WIDTH/2-100/2+100, HEIGHT*(((eState+1)*2+1)%6)/8+100, 0x00000060);
-	boxColor(gMainWindow, F_WIDTH/2-100/2, HEIGHT*(((eState*2)+5)%6)/8, F_WIDTH/2-100/2+100, HEIGHT*(((eState*2)+5)%6)/8+100, 0x00000060);
+	boxColor(gMainWindow, F_WIDTH*(((eState+1)*2+1)%6)/8, 5*HEIGHT/8, F_WIDTH*(((eState+1)*2+1)%6)/8+100, 5*HEIGHT/8+100, 0x00000060);
+	boxColor(gMainWindow, F_WIDTH*(((eState*2)+5)%6)/8, 5*HEIGHT/8, F_WIDTH*(((eState*2)+5)%6)/8+100, 5*HEIGHT/8+100, 0x00000060);
 	SDL_Flip(gMainWindow);
 }
 
@@ -263,10 +279,15 @@ void DrawShot()
 void DrawCommand()
 {
 	int i;
-	Rect rect = {{0, 0, 0, 0}, {0, 0}};
+	Rect rect = {{0, 0, 100, 320}, {F_WIDTH/8, 5 * HEIGHT /8 - 110}};
 
 	/* 選択中のコマンドの描画 */
 	boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
+
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.dst.x = 3 * F_WIDTH /8;
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+
 	rect.src.x = gCommand.dir * C_SIZE;
 	rect.src.y = 0;
 	rect.src.w = rect.src.h = C_SIZE;
@@ -384,23 +405,23 @@ void WindowEvent(SDLKey key)
 			else
 				eState = EDIT_DECIDE;
 			break;
-		case SDLK_UP:
-			eState = (eState + MAX_EDIT - 1) % MAX_EDIT;
-			break;
-		case SDLK_DOWN:
-			eState = (eState + 1) % MAX_EDIT;
-			break;
-		case SDLK_LEFT: //コマンドの選択
+		case SDLK_UP: //コマンドの選択
 			if(eState == EDIT_GUN)
 				gChara[0].gun = (gChara[0].gun + MAX_GUN - 1) % MAX_GUN;
 			else if(eState == EDIT_ARMOR)
 				gChara[0].armor = (gChara[0].armor + MAX_ARMOR - 1) % MAX_ARMOR;
 			break;
-		case SDLK_RIGHT:
+		case SDLK_DOWN:
 			if(eState == EDIT_GUN)
 				gChara[0].gun = (gChara[0].gun + 1) % MAX_GUN;
 			else if(eState == EDIT_ARMOR)
 				gChara[0].armor = (gChara[0].armor + 1) % MAX_ARMOR;
+			break;
+		case SDLK_LEFT:
+			eState = (eState + MAX_EDIT - 1) % MAX_EDIT;
+			break;
+		case SDLK_RIGHT:
+			eState = (eState + 1) % MAX_EDIT;
 			break;
 		default:
 			break;
@@ -420,13 +441,13 @@ void WindowEvent(SDLKey key)
 			case SDLK_UP:
 				if(cState == COMMAND_DIR)
 					gCommand.dir = (gCommand.dir + 7) % 8;
-				else
+				else if(cState == COMMAND_SHOT)
 					gCommand.gun = (gCommand.gun - (8-1)) % 2 + 8;
 				break;
 			case SDLK_DOWN:
 				if(cState == COMMAND_DIR)
 					gCommand.dir = (gCommand.dir + 1) % 8;
-				else
+				else if(cState == COMMAND_SHOT)
 					gCommand.gun = (gCommand.gun - (8-1)) % 2 + 8;
 				break;
 			case SDLK_x:

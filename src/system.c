@@ -109,18 +109,18 @@ void InitMain()
 
 	//COMはとりあえずランダムにコマンドと銃を決定
 	for(i=1; i<CT_NUM; i++){
-		gChara[i].gun	= GUN_MILK;//rand() % MAX_GUN;
+		gChara[i].gun	= rand() % (MAX_GUN-1);
 		gChara[i].armor = ARMOR_MIDDLE;
 		gChara[i].maxhp = gArmor[gChara[i].armor].hp;
 		gChara[i].hp = gChara[i].maxhp;
 		for(j=0; j<MAX_COMMAND; j++){
-			///*
+			/*
 			if(j % 2 == 0)
 				gChara[i].command[j] = C_SCOPE;
 			else
 				gChara[i].command[j] = C_FIRE;
-			//*/
-			//gChara[i].command[j] = rand() % 10;
+			*/
+			gChara[i].command[j] = rand() % 10;
 		}
 	}
 }
@@ -267,7 +267,7 @@ void Fire(int ct)
 	case GUN_MILK:
 		//MakeShot(ct, gChara[ct].dir + 10 * sin((double)count / (lastcount/2) * M_PI));
 		///*
-		j=30;
+		j=2;
 		for(i=0; i<j; i++)
 			MakeShot(ct, count * 9 + i * 360/j);
 		//*/
@@ -330,8 +330,8 @@ void MoveShot()
 	for(i=0; i<MAX_COUNT/lastcount; i++)
 		for(j=0; j<MAX_SHOT; j++)
 			if(gShot[j].state == LIVING){
-				gShot[j].pos.x = gShot[j].pos.x + 10 * 60 * MAX_COUNT / pow(lastcount, 2) * sin(gShot[j].dir * M_PI /180);
-				gShot[j].pos.y = gShot[j].pos.y - 10 * 60 * MAX_COUNT / pow(lastcount, 2) * cos(gShot[j].dir * M_PI /180);
+				gShot[j].pos.x = gShot[j].pos.x + 10 * sin(gShot[j].dir * M_PI /180);
+				gShot[j].pos.y = gShot[j].pos.y - 10 * cos(gShot[j].dir * M_PI /180);
 				newpos.x = gShot[j].pos.x;
 				newpos.y = gShot[j].pos.y;
 
