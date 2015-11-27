@@ -25,12 +25,14 @@
 #define C_SIZE  100 /* コマンドアイコンの大きさ */
 #define C_SCOPE 8	 /* 照準 */
 #define C_FIRE  9	 /* 発射 */
+#define BOSS	-1
 
 #define MAX_CT 4			/* キャラクターの最大数 */
 #define MAX_COMMAND 4			/* コマンドの最大格納数 */
-#define MAX_SHOT MAX_CT * 512
+#define MAX_BOSSCOMMAND 4		/* コマンドの最大格納数 */
+#define MAX_SHOT MAX_CT * 300
 #define MAX_COUNT 60			/* 最大カウント、減らすほど速度up */
-#define MAX_SPEED 4			/* 最大再生スピード倍率 */
+#define MAX_SPEED 6			/* 最大再生スピード倍率 */
 int lastcount;
 int gspeed;						/* ゲームスピード */
 
@@ -41,6 +43,13 @@ typedef enum{
     GAME_MAIN,	/* メイン */
 	GAME_END	/* 終了 */
 }GameState;
+
+/* タイトルの状態 */
+typedef enum{
+    ADVENTURE = 0,/* タイトル */
+	VS_MODE	= 1,	/* 編集 */
+    TITLE_QUIT		= 2		/* 終了 */
+}TitleState;
 
 /* 編集モードの状態 */
 typedef enum{
@@ -63,20 +72,34 @@ typedef enum{
 	COMMAND_DECIDE	= 2
 }CommandState;
 
-/* 武器・防具の種類 */
 enum{
+	MAX_TITLE	= 3,
 	MAX_EDIT	= 3,	/* 編集項目の数 */
 
-	GUN_1SHOT  = 0, /* 1ショット */
-	GUN_3SHOT  = 1, /* 3ショット */
-	GUN_BUBBLE = 2, /* バブル */
-	GUN_MILK   = 3, /* ミルクの科学 */
-	MAX_GUN    = 4,
+	MAX_BOSS	= 1
+};
+
+/* 武器・防具の種類 */
+enum{
+	GUN_1SHOT		= 0, /* 1ショット */
+	GUN_3SHOT		= 1, /* 3ショット */
+	GUN_BUBBLE		= 2, /* バブル */
+
+	GUN_MILK		= 3, /* ミルクの科学 */
+	GUN_5SHOT		= 4, /* 5ショット */
+
+	MAX_PLAYERGUN	= 3, /* 使用可能な武器の数 */
+	MAX_GUN			= 5, /* 敵用の武器も含めた武器の数 */
 
 	ARMOR_LIGHT		= 0, /* 軽 */
 	ARMOR_MIDDLE	= 1, /* 中 */
 	ARMOR_HEAVY		= 2, /* 重 */
 	MAX_ARMOR		= 3
+};
+
+enum{
+	SENKOUSHA	= 0,
+
 };
 
 /* 武器の情報 */
@@ -119,6 +142,33 @@ typedef struct{
 	int armor;					/* 装備中の防具 */
 } CharaInfo;
 
+typedef struct{
+    int command[12]; 	/* コマンドの格納 */
+	int hp;						/* 現在HP */
+	int speed;
+	int gun;					/* 装備中の武器 */
+	int w;
+	int h;
+} BossInfo;
+
+typedef struct{
+	int no;					/* 種類 */
+    Pos pos;					/* 座標 */
+    Pos startpos;				/* 移動開始時の座標 */
+    Pos goalpos;				/* 移動目標 */
+    int dir;					/* キャラクターの角度 */
+    int startdir;				/* 変更開始時の角度 */
+    int goaldir;				/* 変更後の角度 */
+    int command[MAX_BOSSCOMMAND]; 	/* コマンドの格納 */
+	CharaState state;
+	int maxhp;					/* 最大HP */
+	int hp;						/* 現在HP */
+	int speed;
+	int gun;					/* 装備中の武器 */
+	int w;
+	int h;
+} EnemyInfo;
+
 /* 玉の情報 */
 typedef struct{
 	int id; /* 撃ったキャラの番号 */
@@ -134,11 +184,12 @@ typedef struct{
     int gun; /* 8:照準, 9:発射 */
 } CommandInfo;
 
-int CT_NUM;		 /* 参加人数 */
-int count;		 /* 移動処理のためのカウント */
-int nowcommand;	 /* 現在適用されているコマンド */
-int winner;		 /* 勝者 */
+int CT_NUM;		/* 合計人数 */
+int count;		/* 移動処理のためのカウント */
+int nowcommand;	/* 現在適用されているコマンド */
+int winner;		/* 勝者 */
 GameState gState;
+TitleState tState;
 EditState eState;
 MainState mState;
 CommandState cState;
@@ -146,6 +197,8 @@ GunInfo gGun[MAX_GUN];
 ArmorInfo gArmor[MAX_ARMOR];
 ShotInfo gShot[MAX_SHOT];
 CharaInfo gChara[MAX_CT];
+BossInfo gBoss[MAX_BOSS];
+EnemyInfo gEnemy;
 CommandInfo gCommand;
 
 #endif /* BRS_SRC_COMMON_H_ */

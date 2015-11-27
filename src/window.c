@@ -9,10 +9,13 @@
 #include "common.h"
 #include "func.h"
 
+static char BRSImgFile[]  = "img/BRS.png";
 static char TitleImgFile[]  = "img/title.png";
 static char ResultImgFile[2][16] = {"img/win.png", "img/lose.png"};
+static char NumberImgFile[] = {"img/number.png"};
 static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
+static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
@@ -21,9 +24,12 @@ static char CommandImgFile[]    = "img/command01.png";
 static char miniCommandImgFile[]    = "img/command02.png";
 
 static SDL_Surface *gMainWindow;
+static SDL_Surface *BRSWindow;
 static SDL_Surface *TitleWindow;
 static SDL_Surface *ResultWindow[2];
+static SDL_Surface *NumWindow;
 static SDL_Surface *ShipWindow[MAX_CT];
+static SDL_Surface *BossWindow[MAX_BOSS];
 static SDL_Surface *GunWindow;
 static SDL_Surface *ArmorWindow;
 static SDL_Surface *ArrowWindow;
@@ -60,6 +66,12 @@ int InitWindow()
 	}
 
 	/* 画像の読み込み */
+	BRSWindow = IMG_Load(BRSImgFile);
+    if(BRSWindow == NULL){
+        printf("failed to open BRS image.");
+        return -1;
+    }
+
     TitleWindow = IMG_Load(TitleImgFile);
     if(TitleWindow == NULL){
         printf("failed to open title image.");
@@ -74,12 +86,26 @@ int InitWindow()
     	}
     }
 
+    NumWindow = IMG_Load(NumberImgFile);
+    	if(NumWindow == NULL){
+        		printf("failed to open num image.");
+        		return -1;
+        	}
+
     for(i=0; i < MAX_CT; i++){
 		ShipWindow[i] = IMG_Load(ShipImgFile[i % 4]);
 		if(ShipWindow[i] == NULL){
 			printf("failed to open ship image.");
 			return -1;
 		}
+    }
+
+    for(i=0; i < MAX_BOSS; i++){
+    	BossWindow[i] = IMG_Load(BossImgFile[i]);
+    	if(BossWindow[i] == NULL){
+    		printf("failed to open boss image.");
+    		return -1;
+    	}
     }
 
     GunWindow = IMG_Load(GunImgFile);
@@ -151,10 +177,24 @@ int InitWindow()
 *****************************************************************/
 void DrawTitle()
 {
+	int i;
 	Rect rect = {{0, 0, WIDTH, HEIGHT}, {0, 0}};
 	/* 背景を白にする */
 	SDL_FillRect(gMainWindow,NULL,0xffffff);
-	SDL_BlitSurface(TitleWindow, &(rect.src), gMainWindow, &(rect.dst));
+	SDL_BlitSurface(BRSWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.src.x = rect.src.y = 0;
+	rect.src.w = 360;
+	rect.src.h = 60;
+	rect.dst.x = (WIDTH - 360)/2;
+	for(i=0; i<MAX_TITLE; i++){
+		rect.src.y = i * 60;
+		rect.dst.y = HEIGHT*((i*2)+1)/8+120;
+		SDL_BlitSurface(TitleWindow, &(rect.src), gMainWindow, &(rect.dst));
+	}
+
+	/*選択中でない装備タブを灰色に*/
+	boxColor(gMainWindow, (WIDTH-360)/2, HEIGHT*(((tState+1)*2+1)%6)/8+120, (WIDTH-360)/2+360, HEIGHT*(((tState+1)*2+1)%6)/8+180, 0x00000060);
+	boxColor(gMainWindow, (WIDTH-360)/2, HEIGHT*(((tState*2)+5)%6)/8+120, (WIDTH-360)/2+360, HEIGHT*(((tState*2)+5)%6)/8+180, 0x00000060);
 	SDL_Flip(gMainWindow);
 }
 
@@ -188,8 +228,6 @@ void DrawEdit()
 	rect.dst.x = 5 * F_WIDTH /8;
 	SDL_BlitSurface(DecideWindow, &(rect.src), gMainWindow, &(rect.dst));
 
-	//100 + i * (HEIGHT - 3 * 100) / (MAX_EDIT - 1);
-
 	/*選択中でない装備タブを灰色に*/
 	boxColor(gMainWindow, F_WIDTH*(((eState+1)*2+1)%6)/8, 5*HEIGHT/8, F_WIDTH*(((eState+1)*2+1)%6)/8+100, 5*HEIGHT/8+100, 0x00000060);
 	boxColor(gMainWindow, F_WIDTH*(((eState*2)+5)%6)/8, 5*HEIGHT/8, F_WIDTH*(((eState*2)+5)%6)/8+100, 5*HEIGHT/8+100, 0x00000060);
@@ -204,7 +242,7 @@ void DrawEdit()
 *****************************************************************/
 void DrawMain()
 {
-	SDL_FillRect(gMainWindow,NULL,0x303030);
+	SDL_FillRect(gMainWindow,NULL,0x101010);
 	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
 	if(mState == MAIN_RESULT) //結果画面
 		DrawResult();
@@ -231,8 +269,8 @@ void DrawShip()
 
 	for(i=0; i<CT_NUM; i++){
 		if(gChara[i].state == LIVING){
-			rect.src.x = (((gChara[i].dir % 180) % 45) / 5 * S_SIZE);
-			rect.src.y = ((gChara[i].dir % 180) / 45) * S_SIZE;
+			rect.src.x = (((gChara[i].dir % 360) % 45) / 5 * S_SIZE);
+			rect.src.y = ((gChara[i].dir % 360) / 45) * S_SIZE;
 			rect.src.w = rect.src.h = S_SIZE;
 			rect.dst.x = gChara[i].pos.x;
 			rect.dst.y = gChara[i].pos.y;
@@ -248,6 +286,26 @@ void DrawShip()
 			rectangleColor(gMainWindow, gChara[i].pos.x - S_SIZE / 2, gChara[i].pos.y + S_SIZE,
 					gChara[i].pos.x + S_SIZE * 3 / 2, gChara[i].pos.y + S_SIZE + 10 , 0xff000080);
 		}
+	}
+
+	if(tState == ADVENTURE){
+		/*ボスの描画*/
+		rect.src.x = rect.src.y = 0;
+		rect.src.w = gEnemy.w;
+		rect.src.h = gEnemy.h;
+		rect.dst.x = gEnemy.pos.x;
+		rect.dst.y = gEnemy.pos.y;
+		SDL_BlitSurface(BossWindow[gEnemy.no], &(rect.src), gMainWindow, &(rect.dst));
+
+		//hpを表す四角形を描画
+		if(gEnemy.hp > gEnemy.maxhp/2)
+			boxColor(gMainWindow, gEnemy.pos.x - gEnemy.w / 2 , gEnemy.pos.y + gEnemy.h,
+					gEnemy.pos.x - gEnemy.w / 2 + gEnemy.w * 2 * (double)(gEnemy.hp) / gEnemy.maxhp, gEnemy.pos.y + gEnemy.h + 10, 0x00ff0080);
+		else
+			boxColor(gMainWindow, gEnemy.pos.x - gEnemy.w / 2 , gEnemy.pos.y + gEnemy.h,
+					gEnemy.pos.x - gEnemy.w / 2 + gEnemy.w * 2 * (double)(gEnemy.hp) / gEnemy.maxhp, gEnemy.pos.y + gEnemy.h + 10, 0xff000080);
+		rectangleColor(gMainWindow, gEnemy.pos.x - gEnemy.w / 2, gEnemy.pos.y + gEnemy.h,
+				gEnemy.pos.x + gEnemy.w * 3 / 2, gEnemy.pos.y + gEnemy.h + 10 , 0xff000080);
 	}
 
 	// 1Pの区別用
@@ -390,8 +448,16 @@ void WindowEvent(SDLKey key)
 
 	switch(gState){
 	case GAME_TITLE:
-		if(key == SDLK_x) //タイトル->エディットへ
-			gState = GAME_EDIT;
+		if(key == SDLK_x){ //タイトル->エディットへ
+			if(tState == TITLE_QUIT)
+				gState = GAME_END;
+			else
+				gState = GAME_EDIT;
+		}
+		if(key == SDLK_UP)
+			tState = (tState + MAX_TITLE - 1) % MAX_TITLE;
+		if(key == SDLK_DOWN)
+			tState = (tState + 1) % MAX_TITLE;
 		break;
 	case GAME_EDIT:
 		/* 編集 */
@@ -407,13 +473,13 @@ void WindowEvent(SDLKey key)
 			break;
 		case SDLK_UP: //コマンドの選択
 			if(eState == EDIT_GUN)
-				gChara[0].gun = (gChara[0].gun + MAX_GUN - 1) % MAX_GUN;
+				gChara[0].gun = (gChara[0].gun + MAX_PLAYERGUN - 1) % MAX_PLAYERGUN;
 			else if(eState == EDIT_ARMOR)
 				gChara[0].armor = (gChara[0].armor + MAX_ARMOR - 1) % MAX_ARMOR;
 			break;
 		case SDLK_DOWN:
 			if(eState == EDIT_GUN)
-				gChara[0].gun = (gChara[0].gun + 1) % MAX_GUN;
+				gChara[0].gun = (gChara[0].gun + 1) % MAX_PLAYERGUN;
 			else if(eState == EDIT_ARMOR)
 				gChara[0].armor = (gChara[0].armor + 1) % MAX_ARMOR;
 			break;
@@ -486,7 +552,7 @@ void WindowEvent(SDLKey key)
 			break;
 		case MAIN_RESULT://結果->コマンドへ
 			if(key == SDLK_x)
-				InitMain();
+				gState = GAME_TITLE;
 			break;
 		}
 		break;

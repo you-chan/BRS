@@ -21,6 +21,7 @@ extern void InitSystem();
 extern void InitTitle();
 extern void InitEdit();
 extern void InitMain();
+extern void InitAdventure();
 extern void UseCommand();
 
 #endif /* BRS_SRC_FUNC_H_ */

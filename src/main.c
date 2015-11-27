@@ -66,6 +66,8 @@ int GameTitle()
 *****************************************************************/
 int GameEdit()
 {
+    if(tState == ADVENTURE)
+    	InitAdventure();
 	InitEdit();
     while(gState == GAME_EDIT){
         InputKey();
