@@ -19,7 +19,7 @@ static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
-static char DecideImgFile[] = "img/decide.png";
+static char ChooseImgFile[] = "img/choose.png";
 static char CommandImgFile[]    = "img/command01.png";
 static char miniCommandImgFile[]    = "img/command02.png";
 
@@ -33,7 +33,7 @@ static SDL_Surface *BossWindow[MAX_BOSS];
 static SDL_Surface *GunWindow;
 static SDL_Surface *ArmorWindow;
 static SDL_Surface *ArrowWindow;
-static SDL_Surface *DecideWindow;
+static SDL_Surface *ChooseWindow;
 static SDL_Surface *CommandWindow;
 static SDL_Surface *miniCommandWindow;
 static SDL_Joystick *joystick; //ジョイスティックを特定・利用するための構造体
@@ -44,11 +44,14 @@ typedef struct {
     SDL_Rect dst;
 } Rect;
 
+static void DrawCommand();
 static void DrawShip();
 static void DrawShot();
-static void DrawCommand();
 static void DrawResult();
 static void WindowEvent(SDLKey key);
+
+#define MAX_SET 4
+int commandset[MAX_SET] = {1899, 8999, 8989, 8494};
 
 /*****************************************************************
 関数名	: InitWindows
@@ -126,9 +129,9 @@ int InitWindow()
         	return -1;
         }
 
-    DecideWindow = IMG_Load(DecideImgFile);
-   		if(DecideWindow == NULL){
-    		printf("failed to open decide image.");
+    ChooseWindow = IMG_Load(ChooseImgFile);
+   		if(ChooseWindow == NULL){
+    		printf("failed to open choose image.");
     		return -1;
     	}
 
@@ -192,7 +195,7 @@ void DrawTitle()
 		SDL_BlitSurface(TitleWindow, &(rect.src), gMainWindow, &(rect.dst));
 	}
 
-	/*選択中でない装備タブを灰色に*/
+	/*選択中でないタブを灰色に*/
 	boxColor(gMainWindow, (WIDTH-360)/2, HEIGHT*(((tState+1)*2+1)%6)/8+120, (WIDTH-360)/2+360, HEIGHT*(((tState+1)*2+1)%6)/8+180, 0x00000060);
 	boxColor(gMainWindow, (WIDTH-360)/2, HEIGHT*(((tState*2)+5)%6)/8+120, (WIDTH-360)/2+360, HEIGHT*(((tState*2)+5)%6)/8+180, 0x00000060);
 	SDL_Flip(gMainWindow);
@@ -215,6 +218,9 @@ void DrawEdit()
 	rect.dst.x = 3 * F_WIDTH /8;
 	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
 
+	/*選択しているコマンドに枠を付ける*/
+	boxColor(gMainWindow, F_WIDTH*(eState*2+1)/8-5, 5*HEIGHT/8-5, F_WIDTH*(eState*2+1)/8+C_SIZE+5, 5*HEIGHT/8+C_SIZE+5, 0xFF0000FF);
+
 	rect.src.x = gChara[0].gun*100;
 	rect.src.y = 0;
 	rect.src.w = rect.src.h = 100;
@@ -224,13 +230,10 @@ void DrawEdit()
 	rect.src.x = gChara[0].armor*100;
 	rect.dst.x = 3 * F_WIDTH /8;
 	SDL_BlitSurface(ArmorWindow, &(rect.src), gMainWindow, &(rect.dst));
-	rect.src.x = 0;
+	rect.src.x = 100;
 	rect.dst.x = 5 * F_WIDTH /8;
-	SDL_BlitSurface(DecideWindow, &(rect.src), gMainWindow, &(rect.dst));
+	SDL_BlitSurface(ChooseWindow, &(rect.src), gMainWindow, &(rect.dst));
 
-	/*選択中でない装備タブを灰色に*/
-	boxColor(gMainWindow, F_WIDTH*(((eState+1)*2+1)%6)/8, 5*HEIGHT/8, F_WIDTH*(((eState+1)*2+1)%6)/8+100, 5*HEIGHT/8+100, 0x00000060);
-	boxColor(gMainWindow, F_WIDTH*(((eState*2)+5)%6)/8, 5*HEIGHT/8, F_WIDTH*(((eState*2)+5)%6)/8+100, 5*HEIGHT/8+100, 0x00000060);
 	SDL_Flip(gMainWindow);
 }
 
@@ -254,6 +257,56 @@ void DrawMain()
 	else if(mState == MAIN_MOVE) //コマンド適用
 		DrawShot();
 	SDL_Flip(gMainWindow);
+}
+
+/*****************************************************************
+関数名 : Drawcommand
+機能	: コマンド入力中の画面を表示する
+引数	: なし
+出力	: なし
+*****************************************************************/
+void DrawCommand()
+{
+	int i;
+	Rect rect = {{0, 0, 100, 320}, {F_WIDTH/8, 5 * HEIGHT /8 - 110}};
+
+	/* 選択中のコマンドの描画 */
+	boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
+
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.dst.x = 2.5 * F_WIDTH /8;
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+
+	/*選択しているコマンドに枠を付ける*/
+	boxColor(gMainWindow, F_WIDTH*(cState*1.5+1)/8-5, 5*HEIGHT/8-5, F_WIDTH*(cState*1.5+1)/8+C_SIZE+5, 5*HEIGHT/8+C_SIZE+5, 0xFF0000FF);
+
+	rect.src.x = gCommand.dir * C_SIZE;
+	rect.src.y = 0;
+	rect.src.w = rect.src.h = C_SIZE;
+	rect.dst.x = 1 * F_WIDTH /8;
+	rect.dst.y = 5 * HEIGHT /8;
+	SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.src.x = gCommand.gun * C_SIZE;
+	rect.dst.x = 2.5 * F_WIDTH /8;
+	SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.src.x = 0;
+	rect.dst.x = 4 * F_WIDTH /8;
+	SDL_BlitSurface(ChooseWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.src.x = 100;
+	rect.dst.x = 5.5 * F_WIDTH /8;
+	SDL_BlitSurface(ChooseWindow, &(rect.src), gMainWindow, &(rect.dst));
+
+	/* 選択したコマンドの描画 */
+	for(i=0; i<MAX_COMMAND; i++){
+		if(gChara[0].command[i] != -1){
+			rect.src.x = gChara[0].command[i] * C_SIZE;
+			rect.src.y = 0;
+			rect.src.w = rect.src.h = C_SIZE;
+			rect.dst.x = F_WIDTH / 4 + C_SIZE * i * 4 / MAX_COMMAND;
+			rect.dst.y = HEIGHT / 8;
+			SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
+		}
+	}
 }
 
 /*****************************************************************
@@ -329,55 +382,6 @@ void DrawShot()
 }
 
 /*****************************************************************
-関数名 : Drawcommand
-機能	: コマンド入力中の画面を表示する
-引数	: なし
-出力	: なし
-*****************************************************************/
-void DrawCommand()
-{
-	int i;
-	Rect rect = {{0, 0, 100, 320}, {F_WIDTH/8, 5 * HEIGHT /8 - 110}};
-
-	/* 選択中のコマンドの描画 */
-	boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
-
-	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
-	rect.dst.x = 3 * F_WIDTH /8;
-	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
-
-	rect.src.x = gCommand.dir * C_SIZE;
-	rect.src.y = 0;
-	rect.src.w = rect.src.h = C_SIZE;
-	rect.dst.x = 1 * F_WIDTH /8;
-	rect.dst.y = 5 * HEIGHT /8;
-	SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
-	rect.src.x = gCommand.gun * C_SIZE;
-	rect.dst.x = 3 * F_WIDTH /8;
-	SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
-	rect.src.x = 0;
-	rect.dst.x = 5 * F_WIDTH /8;
-	SDL_BlitSurface(DecideWindow, &(rect.src), gMainWindow, &(rect.dst));
-
-	/*選択していないコマンドを灰色に*/
-	boxColor(gMainWindow, F_WIDTH*(((cState+1)*2+1)%6)/8, 5*HEIGHT/8, F_WIDTH*(((cState+1)*2+1)%6)/8+C_SIZE, 5*HEIGHT/8+C_SIZE, 0x00000060);
-	boxColor(gMainWindow, F_WIDTH*(((cState*2)+5)%6)/8, 5*HEIGHT/8, F_WIDTH*(((cState*2)+5)%6)/8+C_SIZE, 5*HEIGHT/8+C_SIZE, 0x00000060);
-
-
-	/* 選択したコマンドの描画 */
-	for(i=0; i<MAX_COMMAND; i++){
-		if(gChara[0].command[i] != -1){
-			rect.src.x = gChara[0].command[i] * C_SIZE;
-			rect.src.y = 0;
-			rect.src.w = rect.src.h = C_SIZE;
-			rect.dst.x = F_WIDTH / 4 + C_SIZE * i * 4 / MAX_COMMAND;
-			rect.dst.y = HEIGHT / 8;
-			SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
-		}
-	}
-}
-
-/*****************************************************************
 関数名 : DrawResult
 機能	: 結果画面を表示する
 引数	: なし
@@ -386,7 +390,7 @@ void DrawCommand()
 void DrawResult()
 {
 	Rect rect = {{0, 0, F_WIDTH, HEIGHT}, {0, 0}};
-	if(winner == 0)
+	if(win == 1)
 		SDL_BlitSurface(ResultWindow[0], &(rect.src), gMainWindow, &(rect.dst));
 	else
 		SDL_BlitSurface(ResultWindow[1], &(rect.src), gMainWindow, &(rect.dst));
@@ -443,6 +447,7 @@ void InputKey()
 *****************************************************************/
 void WindowEvent(SDLKey key)
 {
+	int i, j, set;
 	if(key == SDLK_ESCAPE)
 		gState = GAME_END;
 
@@ -499,10 +504,10 @@ void WindowEvent(SDLKey key)
 		case MAIN_COMMAND:
 			switch(key){
 			case SDLK_LEFT:
-				cState = (cState + 3-1) % 3;
+				cState = (cState + MAX_ECOMMAND-1) % MAX_ECOMMAND;
 				break;
 			case SDLK_RIGHT:
-				cState = (cState + 1) % 3;
+				cState = (cState + 1) % MAX_ECOMMAND;
 				break;
 			case SDLK_UP:
 				if(cState == COMMAND_DIR)
@@ -517,27 +522,46 @@ void WindowEvent(SDLKey key)
 					gCommand.gun = (gCommand.gun - (8-1)) % 2 + 8;
 				break;
 			case SDLK_x:
-				if(gChara[0].command[MAX_COMMAND-1] == -1){
+				if(cState == COMMAND_RANDOM){	//おまかせ
+					//1899/1000 0->3
+					set = rand() % MAX_SET;
+					for(i=0; i<MAX_COMMAND; i++){
+						gChara[0].command[i] = (int)(commandset[set]/pow(10, MAX_COMMAND-i-1)) % 10;
+					}
+					nowcommand = gChara[i].commandnum = MAX_COMMAND;
+				}
+				else if(cState == COMMAND_DECIDE && gChara[0].command[MAX_COMMAND-2] != -1){	//コマンド入力後の処理
+					nowcommand = 0;
+					mState = MAIN_MOVE;	//動作に移行
+					//COMのコマンド決定
+					for(i=1; i<CT_NUM; i++){
+						set = rand() % MAX_SET;
+						for(j=0; j<MAX_COMMAND; j++){
+							gChara[i].command[j] = (int)(commandset[set]/pow(10, MAX_COMMAND-j-1)) % 10;
+							gChara[i].commandnum++;
+						}
+					}
+				}
+				else if(gChara[0].command[MAX_COMMAND-1] == -1){
 					if(cState == COMMAND_DIR){
 						gChara[0].command[nowcommand] = gCommand.dir;
 						nowcommand++;
+						gChara[0].commandnum++;
 					}
 					else if(cState == COMMAND_SHOT){
 						gChara[0].command[nowcommand] = gCommand.gun;
 						nowcommand++;
+						gChara[0].commandnum++;
 					}
 					if(nowcommand == MAX_COMMAND)
 						cState = COMMAND_DECIDE;
-				}
-				else if(cState == COMMAND_DECIDE){	//コマンド入力後の処理
-					nowcommand = 0;
-					mState = MAIN_MOVE;	//動作に移行
 				}
 			break;
 			case SDLK_z:
 				if(nowcommand != 0){
 					nowcommand--;
 					gChara[0].command[nowcommand] = -1;
+					gChara[0].commandnum--;
 				}
 			break;
 			default:

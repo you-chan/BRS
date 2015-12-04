@@ -26,11 +26,10 @@
 #define C_SCOPE 8	 /* 照準 */
 #define C_FIRE  9	 /* 発射 */
 #define BOSS	-1
-
-#define MAX_CT 4			/* キャラクターの最大数 */
+#define MAX_CT 4				/* キャラクターの最大数 */
 #define MAX_COMMAND 4			/* コマンドの最大格納数 */
 #define MAX_BOSSCOMMAND 4		/* コマンドの最大格納数 */
-#define MAX_SHOT MAX_CT * 300
+#define MAX_SHOT 300
 #define MAX_COUNT 60			/* 最大カウント、減らすほど速度up */
 #define MAX_SPEED 6			/* 最大再生スピード倍率 */
 int lastcount;
@@ -53,9 +52,9 @@ typedef enum{
 
 /* 編集モードの状態 */
 typedef enum{
-    EDIT_GUN	= 0,	/* 武器選択 */
-	EDIT_ARMOR	= 1,	/* 防具選択 */
-	EDIT_DECIDE = 2		/* 決定 */
+    EDIT_GUN		= 0,	/* 武器選択 */
+	EDIT_ARMOR		= 1,	/* 防具選択 */
+	EDIT_DECIDE 	= 2		/* 決定 */
 }EditState;
 
 /* メインモードの状態 */
@@ -69,12 +68,14 @@ typedef enum{
 typedef enum{
     COMMAND_DIR		= 0,	/* 方向選択 */
     COMMAND_SHOT	= 1,	/* 照準or発射 */
-	COMMAND_DECIDE	= 2
+	COMMAND_RANDOM	= 2,	/* おまかせ */
+	COMMAND_DECIDE	= 3		/* 決定 */
 }CommandState;
 
 enum{
-	MAX_TITLE	= 3,
-	MAX_EDIT	= 3,	/* 編集項目の数 */
+	MAX_TITLE		= 3,
+	MAX_EDIT		= 3,	/* 編集項目の数 */
+	MAX_ECOMMAND	= 4,
 
 	MAX_BOSS	= 1
 };
@@ -90,6 +91,7 @@ enum{
 
 	MAX_PLAYERGUN	= 3, /* 使用可能な武器の数 */
 	MAX_GUN			= 5, /* 敵用の武器も含めた武器の数 */
+	MAX_BOSSGUN		= 3, /* ボスが一度に使用可能な武器の数 */
 
 	ARMOR_LIGHT		= 0, /* 軽 */
 	ARMOR_MIDDLE	= 1, /* 中 */
@@ -99,7 +101,6 @@ enum{
 
 enum{
 	SENKOUSHA	= 0,
-
 };
 
 /* 武器の情報 */
@@ -135,6 +136,7 @@ typedef struct{
     int startdir;				/* 変更開始時の角度 */
     int goaldir;				/* 変更後の角度 */
     int command[MAX_COMMAND]; 	/* コマンドの格納 */
+    int commandnum;				/* コマンドの数 */
 	CharaState state;
 	int maxhp;					/* 最大HP */
 	int hp;						/* 現在HP */
@@ -143,28 +145,30 @@ typedef struct{
 } CharaInfo;
 
 typedef struct{
-    int command[12]; 	/* コマンドの格納 */
+    int command[MAX_BOSSCOMMAND]; 	/* コマンドの格納 */
 	int hp;						/* 現在HP */
 	int speed;
-	int gun;					/* 装備中の武器 */
+	int gun[MAX_BOSSGUN];					/* 装備中の武器 */
 	int w;
 	int h;
 } BossInfo;
 
 typedef struct{
-	int no;					/* 種類 */
-    Pos pos;					/* 座標 */
-    Pos startpos;				/* 移動開始時の座標 */
-    Pos goalpos;				/* 移動目標 */
-    int dir;					/* キャラクターの角度 */
-    int startdir;				/* 変更開始時の角度 */
-    int goaldir;				/* 変更後の角度 */
+	int no;							/* 個体 */
+	int form;						/* 形態 */
+    Pos pos;						/* 座標 */
+    Pos startpos;					/* 移動開始時の座標 */
+    Pos goalpos;					/* 移動目標 */
+    Pos shotpos[3];
+    int dir;						/* キャラクターの角度 */
+    int startdir;					/* 変更開始時の角度 */
+    int goaldir;					/* 変更後の角度 */
     int command[MAX_BOSSCOMMAND]; 	/* コマンドの格納 */
 	CharaState state;
-	int maxhp;					/* 最大HP */
-	int hp;						/* 現在HP */
+	int maxhp;						/* 最大HP */
+	int hp;							/* 現在HP */
 	int speed;
-	int gun;					/* 装備中の武器 */
+	int gun[MAX_BOSSGUN];			/* 装備中の武器 */
 	int w;
 	int h;
 } EnemyInfo;
@@ -180,14 +184,14 @@ typedef struct{
 
 /* コマンドの種類 */
 typedef struct{
-    int dir;  /* コマンドの向き(1〜7) */
+    int dir;  /* コマンドの向き(0〜7) */
     int gun; /* 8:照準, 9:発射 */
 } CommandInfo;
 
 int CT_NUM;		/* 合計人数 */
 int count;		/* 移動処理のためのカウント */
 int nowcommand;	/* 現在適用されているコマンド */
-int winner;		/* 勝者 */
+int win;		/* 勝敗, 1:勝ち, 2:負け */
 GameState gState;
 TitleState tState;
 EditState eState;
