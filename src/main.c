@@ -60,14 +60,12 @@ int GameTitle()
 
 /*****************************************************************
 関数名 : GameEdit
-機能	: 編集の処理
+機能	: 武器編集の処理
 引数	: なし
 出力	: ゲームの状態
 *****************************************************************/
 int GameEdit()
 {
-    if(tState == ADVENTURE)
-    	InitAdventure();
 	InitEdit();
     while(gState == GAME_EDIT){
         InputKey();
@@ -86,6 +84,8 @@ int GameEdit()
 int GameMain()
 {
     InitMain();
+    if(tState == ADVENTURE)
+    	InitAdventure();
     /* タイマー */
     Uint32 interval = SDL_GetTicks() + 100;
 

@@ -15,7 +15,7 @@ static char ResultImgFile[2][16] = {"img/win.png", "img/lose.png"};
 static char NumberImgFile[] = {"img/number.png"};
 static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
-static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png"};
+static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
@@ -51,7 +51,7 @@ static void DrawResult();
 static void WindowEvent(SDLKey key);
 
 #define MAX_SET 4
-int commandset[MAX_SET] = {1899, 8999, 8989, 8494};
+int commandset[MAX_SET] = {189189, 899899, 898989, 849795};
 
 /*****************************************************************
 関数名	: InitWindows
@@ -103,7 +103,7 @@ int InitWindow()
 		}
     }
 
-    for(i=0; i < MAX_BOSS; i++){
+    for(i=0; i<MAX_BOSS; i++){
     	BossWindow[i] = IMG_Load(BossImgFile[i]);
     	if(BossWindow[i] == NULL){
     		printf("failed to open boss image.");
@@ -302,7 +302,10 @@ void DrawCommand()
 			rect.src.x = gChara[0].command[i] * C_SIZE;
 			rect.src.y = 0;
 			rect.src.w = rect.src.h = C_SIZE;
-			rect.dst.x = F_WIDTH / 4 + C_SIZE * i * 4 / MAX_COMMAND;
+			if(gChara[0].commandnum <= 4)
+				rect.dst.x = F_WIDTH / 4 + C_SIZE * i;
+			else
+				rect.dst.x = F_WIDTH / 4 + C_SIZE * i * 4 / gChara[0].commandnum;//MAX_COMMAND;
 			rect.dst.y = HEIGHT / 8;
 			SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
 		}
@@ -343,22 +346,28 @@ void DrawShip()
 
 	if(tState == ADVENTURE){
 		/*ボスの描画*/
-		rect.src.x = rect.src.y = 0;
-		rect.src.w = gEnemy.w;
-		rect.src.h = gEnemy.h;
-		rect.dst.x = gEnemy.pos.x;
-		rect.dst.y = gEnemy.pos.y;
-		SDL_BlitSurface(BossWindow[gEnemy.no], &(rect.src), gMainWindow, &(rect.dst));
+		if(gBoss.anipatnum <= 1)
+			rect.src.x = 0;
+		else{
+			gBoss.anipat = ((gBoss.anipat + 1) % gBoss.anipatnum);
+			rect.src.x = gBoss.anipat * gBoss.w;
+		}
+		rect.src.y = 0;
+		rect.src.w = gBoss.w;
+		rect.src.h = gBoss.h;
+		rect.dst.x = gBoss.pos.x;
+		rect.dst.y = gBoss.pos.y;
+		SDL_BlitSurface(BossWindow[gBoss.no], &(rect.src), gMainWindow, &(rect.dst));
 
 		//hpを表す四角形を描画
-		if(gEnemy.hp > gEnemy.maxhp/2)
-			boxColor(gMainWindow, gEnemy.pos.x - gEnemy.w / 2 , gEnemy.pos.y + gEnemy.h,
-					gEnemy.pos.x - gEnemy.w / 2 + gEnemy.w * 2 * (double)(gEnemy.hp) / gEnemy.maxhp, gEnemy.pos.y + gEnemy.h + 10, 0x00ff0080);
+		if(gBoss.hp > gBoss.maxhp/2)
+			boxColor(gMainWindow, gBoss.pos.x - 100 , gBoss.pos.y + gBoss.h,
+					gBoss.pos.x - 100 + (gBoss.w + 200) * (double)(gBoss.hp) / gBoss.maxhp, gBoss.pos.y + gBoss.h + 10, 0x00ff0080);
 		else
-			boxColor(gMainWindow, gEnemy.pos.x - gEnemy.w / 2 , gEnemy.pos.y + gEnemy.h,
-					gEnemy.pos.x - gEnemy.w / 2 + gEnemy.w * 2 * (double)(gEnemy.hp) / gEnemy.maxhp, gEnemy.pos.y + gEnemy.h + 10, 0xff000080);
-		rectangleColor(gMainWindow, gEnemy.pos.x - gEnemy.w / 2, gEnemy.pos.y + gEnemy.h,
-				gEnemy.pos.x + gEnemy.w * 3 / 2, gEnemy.pos.y + gEnemy.h + 10 , 0xff000080);
+			boxColor(gMainWindow, gBoss.pos.x - 100 , gBoss.pos.y + gBoss.h,
+					gBoss.pos.x - 100 + (gBoss.w +200) * (double)(gBoss.hp) / gBoss.maxhp, gBoss.pos.y + gBoss.h + 10, 0xff000080);
+		rectangleColor(gMainWindow, gBoss.pos.x - 100, gBoss.pos.y + gBoss.h,
+				gBoss.pos.x + gBoss.w + 100, gBoss.pos.y + gBoss.h + 10 , 0xff000080);
 	}
 
 	// 1Pの区別用
@@ -528,40 +537,37 @@ void WindowEvent(SDLKey key)
 					for(i=0; i<MAX_COMMAND; i++){
 						gChara[0].command[i] = (int)(commandset[set]/pow(10, MAX_COMMAND-i-1)) % 10;
 					}
-					nowcommand = gChara[i].commandnum = MAX_COMMAND;
+					gChara[0].commandnum = MAX_COMMAND;
 				}
-				else if(cState == COMMAND_DECIDE && gChara[0].command[MAX_COMMAND-2] != -1){	//コマンド入力後の処理
-					nowcommand = 0;
+				else if(cState == COMMAND_DECIDE && gChara[0].commandnum >= 3){	//コマンド入力後の処理
 					mState = MAIN_MOVE;	//動作に移行
 					//COMのコマンド決定
 					for(i=1; i<CT_NUM; i++){
 						set = rand() % MAX_SET;
 						for(j=0; j<MAX_COMMAND; j++){
-							gChara[i].command[j] = (int)(commandset[set]/pow(10, MAX_COMMAND-j-1)) % 10;
+							gChara[i].command[j] = /*(j%2)*4;*/(int)(commandset[set]/pow(10, (MAX_COMMAND-j-1)%4)) % 10;
+							//gChara[i].command[j] = (rand() % 2) + 8;
 							gChara[i].commandnum++;
 						}
 					}
 				}
 				else if(gChara[0].command[MAX_COMMAND-1] == -1){
 					if(cState == COMMAND_DIR){
-						gChara[0].command[nowcommand] = gCommand.dir;
-						nowcommand++;
+						gChara[0].command[gChara[0].commandnum] = gCommand.dir;
 						gChara[0].commandnum++;
 					}
 					else if(cState == COMMAND_SHOT){
-						gChara[0].command[nowcommand] = gCommand.gun;
-						nowcommand++;
+						gChara[0].command[gChara[0].commandnum] = gCommand.gun;
 						gChara[0].commandnum++;
 					}
-					if(nowcommand == MAX_COMMAND)
+					if(gChara[0].commandnum == MAX_COMMAND)
 						cState = COMMAND_DECIDE;
 				}
 			break;
 			case SDLK_z:
-				if(nowcommand != 0){
-					nowcommand--;
-					gChara[0].command[nowcommand] = -1;
+				if(gChara[0].commandnum != 0){
 					gChara[0].commandnum--;
+					gChara[0].command[gChara[0].commandnum] = -1;
 				}
 			break;
 			default:
@@ -575,7 +581,7 @@ void WindowEvent(SDLKey key)
 				gspeed++;
 			break;
 		case MAIN_RESULT://結果->コマンドへ
-			if(key == SDLK_x)
+			if(key == SDLK_z)
 				gState = GAME_TITLE;
 			break;
 		}
