@@ -3,7 +3,6 @@
 #include "common.h"
 #include "func.h"
 
-static Pos DecideGoal(Pos pos, int command, int dir, int speed);
 static Pos BossDecideGoal(Pos pos, int w, int h, int command, int speed);
 static int DecideDir(int ct, Pos pos);
 static int DecideDistance(Pos p1, Pos p2);
@@ -11,8 +10,8 @@ static void Fire(int ct);
 static void BossFire(int type, Pos pos, int dir);
 static void MakeShot(int ct, int dir);
 static void BossMakeShot(int type, Pos pos, int dir);
-static Pos MoveChara(int ct, Pos pos, Pos startpos, Pos goalpos, int dir);
-static Pos MoveBoss(Pos pos, Pos startpos, Pos goalpos, int command);
+static Pos MoveChara(int ct, Pos pos, int dir, int speed);
+static Pos MoveBoss(Pos pos, int command);
 static int MoveDir(int startdir, int goaldir);
 static void MoveShot();
 
@@ -43,13 +42,13 @@ void InitSystem()
 	gGun[GUN_5SHOT].color  = 0xC0C0C0FF;
 
 	gArmor[ARMOR_LIGHT].hp		= 300;
-	gArmor[ARMOR_LIGHT].speed	= 500;
+	gArmor[ARMOR_LIGHT].speed	= 10;
 	gArmor[ARMOR_MIDDLE].hp		= 450;
-	gArmor[ARMOR_MIDDLE].speed	= 150;
+	gArmor[ARMOR_MIDDLE].speed	= 5;
 	gArmor[ARMOR_HEAVY].hp		= 800;
-	gArmor[ARMOR_HEAVY].speed	= 50;
+	gArmor[ARMOR_HEAVY].speed	= 3;
 
-	bInfo[SENKOUSHA].hp				= 3000;
+	bInfo[SENKOUSHA].hp				= 2000;
 	bInfo[SENKOUSHA].w				= 200;
 	bInfo[SENKOUSHA].h				= 400;
 	bInfo[SENKOUSHA].speed			= 50;
@@ -67,6 +66,7 @@ void InitSystem()
 	bInfo[SENKOUSHA].shotcommand[2]	= 12121212;
 	bInfo[SENKOUSHA].movecommand	= 12121212;
 	bInfo[SENKOUSHA].anipat			= 1;
+	bInfo[SENKOUSHA].next			= GAHARA;
 
 	bInfo[GAHARA].hp				= 6000;
 	bInfo[GAHARA].w					= 300;
@@ -81,11 +81,12 @@ void InitSystem()
 	bInfo[GAHARA].shotpos[1].y		= 75;
 	bInfo[GAHARA].shotpos[2].x		= 158;
 	bInfo[GAHARA].shotpos[2].y		= 136;
-	bInfo[GAHARA].shotcommand[0]	=   200020; //12001200 //武器0
-	bInfo[GAHARA].shotcommand[1]	=   200020;
-	bInfo[GAHARA].shotcommand[2]	= 12121212;
+	bInfo[GAHARA].shotcommand[0]	=  2020202; //12001200 //武器0
+	bInfo[GAHARA].shotcommand[1]	=  2020202;
+	bInfo[GAHARA].shotcommand[2]	= 22222222;
 	bInfo[GAHARA].movecommand		= 12121212;
 	bInfo[GAHARA].anipat			= 8;
+	bInfo[GAHARA].next				= -1;
 }
 
 /*****************************************************************
@@ -97,7 +98,7 @@ void InitSystem()
 void InitTitle()
 {
 	tState = ADVENTURE;
-	gBoss.no = GAHARA;//とりあえず
+	gBoss.no = SENKOUSHA;//とりあえず
 }
 
 /*****************************************************************
@@ -121,7 +122,9 @@ void InitEdit()
 *****************************************************************/
 void InitMain()
 {
-	int i, j;
+	int i, j, n;
+	int posflg;
+	Pos cpos;
 
 	if(tState == VS_MODE) //人数設定、通信時要変更
 		CT_NUM = MAX_CT;
@@ -146,13 +149,35 @@ void InitMain()
 
 	 /* 座標, 角度の決定 */
 	for(i=0; i<CT_NUM; i++){
-		gChara[i].pos.x = S_SIZE;//S_SIZE + i * (F_WIDTH - 3 * S_SIZE) / CT_NUM;
-		gChara[i].pos.y = rand() % (HEIGHT-S_SIZE);
-		gChara[i].dir = 0;//rand() % 360;
+		posflg = 1;
+		/* 座標決め、重なっていたらやり直し */
+		do{
+			gChara[i].pos.x = cpos.x = rand() % (F_WIDTH-S_SIZE);
+			gChara[i].pos.y = cpos.y = rand() % (HEIGHT-S_SIZE);
+			for(j=0; j<i+1; j++){
+				if((i != j && cpos.x <= gChara[j].pos.x + S_SIZE && cpos.x + S_SIZE >= gChara[j].pos.x &&
+							  cpos.y <= gChara[j].pos.y + S_SIZE && cpos.y + S_SIZE >= gChara[j].pos.y) ||
+					(tState == ADVENTURE && cpos.x <= gBoss.pos.x + gBoss.w && cpos.x + S_SIZE >= gBoss.pos.x &&
+											cpos.y <= gBoss.pos.y + gBoss.h && cpos.y + S_SIZE >= gBoss.pos.y)){
+					n++;
+					printf("%d\n", n);
+					if(n >= 100){
+						printf("no put character\n");
+						posflg = 0;
+						gState = GAME_END;
+					}
+				}
+				else{
+					posflg = 0;
+				}
+			}
+		} while(posflg);
+		gChara[i].dir	= DecideDir(i, gChara[i].pos);
 		gChara[i].state = LIVING;
 		gChara[i].maxhp = gArmor[gChara[i].armor].hp;
-		gChara[i].hp = gChara[i].maxhp;
-		gChara[i].atk = gGun[gChara[i].gun].atk;
+		gChara[i].hp	= gChara[i].maxhp;
+		gChara[i].atk	= gGun[gChara[i].gun].atk;
+		gChara[i].speed = gArmor[gChara[i].armor].speed;
 		gChara[i].commandnum = 0;
 		for(j=0; j<MAX_COMMAND; j++)
 			gChara[i].command[j] = -1;
@@ -180,10 +205,13 @@ void InitAdventure()
 	gBoss.h		= bInfo[gBoss.no].h;
 	gBoss.pos.x	= F_WIDTH - gBoss.w;
 	gBoss.pos.y	= (HEIGHT-gBoss.h)/2;
+	gBoss.goalpos  = BossDecideGoal(gBoss.pos, gBoss.w, gBoss.h,
+									gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND], gBoss.speed);
 	gBoss.state	= LIVING;
 	gBoss.speed	 = bInfo[gBoss.no].speed;
 	gBoss.anipat = 0;
 	gBoss.anipatnum = bInfo[gBoss.no].anipat;
+	gBoss.next 		= bInfo[gBoss.no].next;
 	for(i=0; i<MAX_BOSSCOMMAND; i++){
 		gBoss.movecommand[i] = (int)(bInfo[gBoss.no].movecommand/pow(10, MAX_BOSSCOMMAND-i-1)) % 10;
 	}
@@ -195,10 +223,6 @@ void InitAdventure()
 		for(j=0; j<MAX_BOSSCOMMAND; j++){
 			gBoss.shotcommand[i][j] = (int)(bInfo[gBoss.no].shotcommand[i]/pow(10, MAX_BOSSCOMMAND-j-1)) % 10;
 		}
-	}
-
-	for(i=0; i<CT_NUM; i++){
-		gChara[i].dir = DecideDir(i, gChara[i].pos);
 	}
 }
 
@@ -223,9 +247,6 @@ void UseCommand()
 			if(gChara[i].state == LIVING)
 				switch(gChara[i].command[nowcommand % gChara[i].commandnum]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: //8方位移動
-					gChara[i].startpos = gChara[i].pos;
-					gChara[i].goalpos =  DecideGoal(gChara[i].pos, gChara[i].command[nowcommand % gChara[i].commandnum],
-													gChara[i].dir, gArmor[gChara[i].armor].speed);
 					break;
 				case C_SCOPE: //照準
 					gChara[i].startdir = (gChara[i].dir % 360);
@@ -240,7 +261,6 @@ void UseCommand()
 		}
 		/* Boss */
 		if(tState == ADVENTURE && gBoss.state == LIVING){
-			gBoss.startpos = gBoss.pos;
 			gBoss.goalpos  = BossDecideGoal(gBoss.pos, gBoss.w, gBoss.h,
 											gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND], gBoss.speed);
 			for(i=0; i<MAX_BOSSGUN; i++){
@@ -269,8 +289,8 @@ void UseCommand()
 			if(gChara[i].state == LIVING){
 				switch(gChara[i].command[nowcommand % gChara[i].commandnum]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
-						gChara[i].pos = MoveChara(i, gChara[i].pos, gChara[i].startpos, gChara[i].goalpos,
-								(gChara[i].dir + gChara[i].command[nowcommand % gChara[i].commandnum] * 45 % 360));
+					for(j=0; j < MAX_COUNT/lastcount; j++)
+						gChara[i].pos = MoveChara(i, gChara[i].pos, (gChara[i].dir + gChara[i].command[nowcommand % gChara[i].commandnum] * 45) % 360, gChara[i].speed);
 					break;
 				case C_SCOPE: //照準
 					if(count <= lastcount / 2)
@@ -289,7 +309,7 @@ void UseCommand()
 		/* BOSS */
 		if(tState == ADVENTURE && gBoss.state == LIVING){
 			for(i=0; i<MAX_COUNT/lastcount; i++){
-				gBoss.pos = MoveBoss(gBoss.pos, gBoss.startpos, gBoss.goalpos, gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND]);
+				gBoss.pos = MoveBoss(gBoss.pos, gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND]);
 			}
 			for(i=0; i<MAX_BOSSGUN; i++){
 				bpos.x = gBoss.pos.x + gBoss.shotpos[i].x;
@@ -323,20 +343,6 @@ void UseCommand()
 	}
 
 	count++;
-}
-
-/*****************************************************************
-関数名 : DecideGoal
-機能	: キャラクターが移動する際の目的地の座標を求める
-引数	: pos : 移動前の座標  command : 移動コマンド(8方位)  dir:角度  speed : 速さ
-出力	: 目的地の座標
-*****************************************************************/
-Pos DecideGoal(Pos pos, int command, int dir, int speed)
-{
-	Pos goalpos = {0, 0};
-	goalpos.x = pos.x + speed * sin((dir + command * 45) * M_PI /180);
-	goalpos.y = pos.y - speed * cos((dir + command * 45) * M_PI /180);
-	return goalpos;
 }
 
 /*****************************************************************
@@ -543,24 +549,32 @@ void BossMakeShot(int type, Pos pos, int dir)
 /*****************************************************************
 関数名 : MoveChara
 機能	: キャラクターの移動
-引数	: ct : キャラの番号 pos : 移動前の座標
+引数	: ct : キャラの番号 pos : 移動前の座標  dir : 移動方向  speed : 速さ
 出力	: なし
 *****************************************************************/
-Pos MoveChara(int ct, Pos pos, Pos startpos, Pos goalpos, int dir)
+Pos MoveChara(int ct, Pos pos, int dir, int speed)
 {
+	int i;
 	Pos newpos = pos;
-	newpos.x = startpos.x + count * (goalpos.x - startpos.x) / lastcount;
-	newpos.y = startpos.y + count * (goalpos.y - startpos.y) / lastcount;
-	/*if(k != gShot[j].id && gChara[k].state == LIVING && gShot[j].state == LIVING &&
-							newpos.x >= gChara[k].pos.x && newpos.x <= gChara[k].pos.x + S_SIZE &&
-							newpos.y >= gChara[k].pos.y && newpos.y <= gChara[k].pos.y + S_SIZE)*/
-	/* 壁またはプレイヤーと衝突時 */
-	//for(i=0; i<CT_NUM; i++){
-		if((newpos.x < 0) || (newpos.x + S_SIZE > F_WIDTH))
-			newpos.x = pos.x;
-		if((newpos.y < 0) || (newpos.y + S_SIZE > HEIGHT))
-			newpos.y = pos.y;
-	//}
+	newpos.x = pos.x + speed * sin(dir * M_PI /180);
+	newpos.y = pos.y - speed * cos(dir * M_PI /180);
+
+	/* 壁と衝突時 */
+	if((newpos.x < 0) || (newpos.x + S_SIZE > F_WIDTH))
+		newpos.x = pos.x;
+	if((newpos.y < 0) || (newpos.y + S_SIZE > HEIGHT))
+		newpos.y = pos.y;
+
+	/* キャラクターと衝突時 */
+	for(i=0; i<CT_NUM; i++){
+		if((i != ct && newpos.x <= gChara[i].pos.x + S_SIZE && newpos.x + S_SIZE >= gChara[i].pos.x &&
+			newpos.y <= gChara[i].pos.y + S_SIZE && newpos.y + S_SIZE >= gChara[i].pos.y) ||
+			(tState == ADVENTURE && newpos.x <= gBoss.pos.x + gBoss.w && newpos.x + S_SIZE >= gBoss.pos.x &&
+									newpos.y <= gBoss.pos.y + gBoss.h && newpos.y + S_SIZE >= gBoss.pos.y)){
+			newpos = pos;
+		}
+	}
+
 	return newpos;
 }
 
@@ -570,13 +584,14 @@ Pos MoveChara(int ct, Pos pos, Pos startpos, Pos goalpos, int dir)
 引数	: pos : 移動前の座標  w,h : ボスの幅・高さ  command : コマンド
 出力	: なし
 *****************************************************************/
-Pos MoveBoss(Pos pos, Pos startpos, Pos goalpos, int command){
+Pos MoveBoss(Pos pos, int command){
 	Pos newpos = pos;
 	switch(command){
 	case MOVE_UP:
+		newpos.y = pos.y - 1;
+		break;
 	case MOVE_DOWN:
-		newpos.x = startpos.x + count * (goalpos.x - startpos.x) / lastcount;
-		newpos.y = startpos.y + count * (goalpos.y - startpos.y) / lastcount;
+		newpos.y = pos.y + 1;
 		break;
 	default:
 		break;
@@ -646,10 +661,16 @@ void MoveShot()
 								newpos.y >= gBoss.pos.y && newpos.y <= gBoss.pos.y + gBoss.h){ //当たり判定
 							gShot[j].state = DEAD;
 							gBoss.hp -= gChara[gShot[j].id].atk;
-							if( gBoss.hp <= 0 ){
-								gBoss.state = DEAD;
-								win = 1;
-								mState = MAIN_RESULT;
+							if(gBoss.hp <= 0 ){
+								if(gBoss.next == -1){
+									gBoss.state = DEAD;
+									win = 1;
+									mState = MAIN_RESULT;
+								}
+								else{
+									gBoss.no = gBoss.next;
+									InitAdventure();
+								}
 							}
 						}
 					}

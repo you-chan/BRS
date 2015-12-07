@@ -545,7 +545,7 @@ void WindowEvent(SDLKey key)
 					for(i=1; i<CT_NUM; i++){
 						set = rand() % MAX_SET;
 						for(j=0; j<MAX_COMMAND; j++){
-							gChara[i].command[j] = /*(j%2)*4;*/(int)(commandset[set]/pow(10, (MAX_COMMAND-j-1)%4)) % 10;
+							gChara[i].command[j] = (int)(commandset[set]/pow(10, (MAX_COMMAND-j-1))) % 10;
 							//gChara[i].command[j] = (rand() % 2) + 8;
 							gChara[i].commandnum++;
 						}

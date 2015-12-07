@@ -83,9 +83,8 @@ int GameEdit()
 *****************************************************************/
 int GameMain()
 {
+	InitAdventure();
     InitMain();
-    if(tState == ADVENTURE)
-    	InitAdventure();
     /* タイマー */
     Uint32 interval = SDL_GetTicks() + 100;
 

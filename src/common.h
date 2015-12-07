@@ -150,8 +150,6 @@ typedef struct{
 /* キャラクターの情報 */
 typedef struct{
     Pos pos;					/* 座標 */
-    Pos startpos;				/* 移動開始時の座標 */
-    Pos goalpos;				/* 移動目標 */
     int dir;					/* キャラクターの角度 */
     int startdir;				/* 変更開始時の角度 */
     int goaldir;				/* 変更後の角度 */
@@ -163,6 +161,7 @@ typedef struct{
 	int maxhp;					/* 最大HP */
 	int hp;						/* 現在HP */
 	int atk;					/* 攻撃力 */
+	int speed;
 } CharaInfo;
 
 /* ボスの情報 */
@@ -176,13 +175,13 @@ typedef struct{
 	int w;
 	int h;
 	int anipat;						/* アニメのパターン */
+	int next;						/* 次の形態 */
 } BossInfo;
 
 typedef struct{
 	int no;											/* 個体 */
-	int form;										/* 形態 */
     Pos pos;										/* 座標 */
-    Pos startpos;									/* 移動開始時の座標 */
+    //Pos startpos;									/* 移動開始時の座標 */
     Pos goalpos;									/* 移動目標 */
     Pos shotpos[MAX_BOSSGUN];						/* 発射座標 */
     int dir[MAX_BOSSGUN];							/* キャラクターの角度 */
@@ -200,6 +199,7 @@ typedef struct{
 	int h;
 	int anipat;										/* アニメのパターン */
 	int anipatnum;									/* アニメのパターンの最大数 */
+	int next;										/* 次の形態 */
 } EnemyInfo;
 
 /* 玉の情報 */
