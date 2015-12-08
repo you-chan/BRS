@@ -15,7 +15,7 @@ static char ResultImgFile[2][16] = {"img/win.png", "img/lose.png"};
 static char NumberImgFile[] = {"img/number.png"};
 static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
-static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png"};
+static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
@@ -574,11 +574,7 @@ void WindowEvent(SDLKey key)
 				break;
 			}
 			break;
-		case MAIN_MOVE:						//加減速
-			if(key == SDLK_LEFT && gspeed != 1)
-				gspeed--;
-			else if(key == SDLK_RIGHT && gspeed != MAX_SPEED)
-				gspeed++;
+		case MAIN_MOVE:
 			break;
 		case MAIN_RESULT://結果->コマンドへ
 			if(key == SDLK_z)

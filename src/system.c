@@ -40,6 +40,8 @@ void InitSystem()
 	gGun[GUN_MILK].color   = 0xFFFFFFFF;
 	gGun[GUN_5SHOT].atk    = 50;
 	gGun[GUN_5SHOT].color  = 0xC0C0C0FF;
+	gGun[GUN_POP].atk    	= 10;
+	gGun[GUN_POP].color  	= 0xFF00FFFF;
 
 	gArmor[ARMOR_LIGHT].hp		= 300;
 	gArmor[ARMOR_LIGHT].speed	= 10;
@@ -72,9 +74,9 @@ void InitSystem()
 	bInfo[GAHARA].w					= 300;
 	bInfo[GAHARA].h					= 300;
 	bInfo[GAHARA].speed				= 200;
-	bInfo[GAHARA].gun[0]			= GUN_MILK;
-	bInfo[GAHARA].gun[1]			= GUN_MILK;
-	bInfo[GAHARA].gun[2]			= GUN_MILK;
+	bInfo[GAHARA].gun[0]			= -1;
+	bInfo[GAHARA].gun[1]			= -1;
+	bInfo[GAHARA].gun[2]			= -1;
 	bInfo[GAHARA].shotpos[0].x		= 60;
 	bInfo[GAHARA].shotpos[0].y		= 75;
 	bInfo[GAHARA].shotpos[1].x		= 240;
@@ -87,6 +89,26 @@ void InitSystem()
 	bInfo[GAHARA].movecommand		= 12121212;
 	bInfo[GAHARA].anipat			= 8;
 	bInfo[GAHARA].next				= -1;
+
+	bInfo[SUDACHI].hp				= 6000;
+	bInfo[SUDACHI].w				= 300;
+	bInfo[SUDACHI].h				= 300;
+	bInfo[SUDACHI].speed			= 200;
+	bInfo[SUDACHI].gun[0]			= GUN_MILK;
+	bInfo[SUDACHI].gun[1]			= -1;
+	bInfo[SUDACHI].gun[2]			= -1;
+	bInfo[SUDACHI].shotpos[0].x		= 148;
+	bInfo[SUDACHI].shotpos[0].y		= 250;
+	bInfo[SUDACHI].shotpos[1].x		= 148;
+	bInfo[SUDACHI].shotpos[1].y		= 250;
+	bInfo[SUDACHI].shotpos[2].x		= 148;
+	bInfo[SUDACHI].shotpos[2].y		= 250;
+	bInfo[SUDACHI].shotcommand[0]	= 22222222; //12001200 //武器0
+	bInfo[SUDACHI].shotcommand[1]	= 22222222;
+	bInfo[SUDACHI].shotcommand[2]	= 22222222;
+	bInfo[SUDACHI].movecommand		= 12121212;
+	bInfo[SUDACHI].anipat			= 2;
+	bInfo[SUDACHI].next				= -1;
 }
 
 /*****************************************************************
@@ -98,7 +120,7 @@ void InitSystem()
 void InitTitle()
 {
 	tState = ADVENTURE;
-	gBoss.no = SENKOUSHA;//とりあえず
+	gBoss.no = SUDACHI;//とりあえず
 }
 
 /*****************************************************************
@@ -135,8 +157,6 @@ void InitMain()
 	cState = COMMAND_DIR;	//方向選択から選択できるように
 	count = 0;
 	nowcommand = 0;
-	lastcount = MAX_COUNT;
-	gspeed = 1;
 	win = 0;
 	gCommand.dir = 0;		 //上方向から選択できるように
 	gCommand.gun = C_SCOPE; //照準から選択できるように
@@ -150,6 +170,7 @@ void InitMain()
 	 /* 座標, 角度の決定 */
 	for(i=0; i<CT_NUM; i++){
 		posflg = 1;
+		n = 0;
 		/* 座標決め、重なっていたらやり直し */
 		do{
 			gChara[i].pos.x = cpos.x = rand() % (F_WIDTH-S_SIZE);
@@ -235,7 +256,7 @@ void InitAdventure()
 void UseCommand()
 {
 	/* カウントを設け、カウントが増えるに伴い各座標も移動する */
-	int i, j;
+	int i;
 	Pos bpos;
 
 	MoveShot();
@@ -283,23 +304,21 @@ void UseCommand()
 		}
 	}
 	/* カウント中 */
-	else if(count <= lastcount){
+	else if(count <= MAX_COUNT){
 		/* Player */
 		for(i=0; i<CT_NUM; i++){
 			if(gChara[i].state == LIVING){
 				switch(gChara[i].command[nowcommand % gChara[i].commandnum]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
-					for(j=0; j < MAX_COUNT/lastcount; j++)
-						gChara[i].pos = MoveChara(i, gChara[i].pos, (gChara[i].dir + gChara[i].command[nowcommand % gChara[i].commandnum] * 45) % 360, gChara[i].speed);
+					gChara[i].pos = MoveChara(i, gChara[i].pos, (gChara[i].dir + gChara[i].command[nowcommand % gChara[i].commandnum] * 45) % 360, gChara[i].speed);
 					break;
 				case C_SCOPE: //照準
-					if(count <= lastcount / 2)
+					if(count <= MAX_COUNT / 2)
 						gChara[i].dir = MoveDir(gChara[i].startdir, gChara[i].goaldir);
 					break;
 				case C_FIRE: //発射
-					for(j=0; j < MAX_COUNT/lastcount; j++)
-						if(gChara[i].gun == GUN_BUBBLE || gChara[i].gun == GUN_MILK)
-							Fire(i);
+					if(gChara[i].gun == GUN_BUBBLE || gChara[i].gun == GUN_MILK)
+						Fire(i);
 					break;
 				default:
 					break;
@@ -308,24 +327,20 @@ void UseCommand()
 		}
 		/* BOSS */
 		if(tState == ADVENTURE && gBoss.state == LIVING){
-			for(i=0; i<MAX_COUNT/lastcount; i++){
-				gBoss.pos = MoveBoss(gBoss.pos, gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND]);
-			}
+			gBoss.pos = MoveBoss(gBoss.pos, gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND]);
 			for(i=0; i<MAX_BOSSGUN; i++){
 				bpos.x = gBoss.pos.x + gBoss.shotpos[i].x;
 				bpos.y = gBoss.pos.y + gBoss.shotpos[i].y;
 				switch(gBoss.shotcommand[i][nowcommand % MAX_BOSSCOMMAND]){
 				case BOSS_SCOPE: //照準
-					if(count <= lastcount / 2)
+					if(count <= MAX_COUNT / 2)
 						for(i=0; i<MAX_BOSSGUN; i++){
 							gBoss.dir[i] = MoveDir(gBoss.startdir[i], gBoss.goaldir[i]);
 						}
 					break;
 				case BOSS_FIRE: //発射
-					for(j=0; j < MAX_COUNT/lastcount; j++){
-						if(gBoss.gun[i] == GUN_BUBBLE || gBoss.gun[i] == GUN_MILK)
-							BossFire(i, bpos, gBoss.dir[i]);
-					}
+					if(gBoss.gun[i] == GUN_BUBBLE || gBoss.gun[i] == GUN_MILK)
+						BossFire(i, bpos, gBoss.dir[i]);
 					break;
 				default:
 					break;
@@ -334,9 +349,8 @@ void UseCommand()
 		}
 	}
 	/* カウント終了後のリセット */
-	if(count == lastcount){
+	if(count == MAX_COUNT){
 		count = -1;
-		lastcount = MAX_COUNT / gspeed;
 		nowcommand++;
 		if(nowcommand == 60)
 			nowcommand = 0;
@@ -437,6 +451,7 @@ void Fire(int ct)
 	i=j=0;
 	switch(gChara[ct].gun){
 	case GUN_1SHOT:
+	case GUN_POP:
 		MakeShot(ct, gChara[ct].dir);
 		break;
 	case GUN_3SHOT:
@@ -445,7 +460,7 @@ void Fire(int ct)
 		MakeShot(ct, (gChara[ct].dir + 360 - 10) % 360);
 		break;
 	case GUN_BUBBLE:
-		MakeShot(ct, gChara[ct].dir + 10 * sin((double)count / (lastcount/2) * M_PI)); //2n + 1 - n
+		MakeShot(ct, gChara[ct].dir + 10 * sin((double)count / (MAX_COUNT/2) * M_PI)); //2n + 1 - n
 		break;
 	case GUN_MILK:
 		j=1;
@@ -475,6 +490,7 @@ void BossFire(int type, Pos pos, int dir)
 	int i,j;
 	switch(gBoss.gun[type]){
 	case GUN_1SHOT:
+	case GUN_POP:
 		BossMakeShot(type, pos, dir);
 		break;
 	case GUN_3SHOT:
@@ -483,14 +499,14 @@ void BossFire(int type, Pos pos, int dir)
 		BossMakeShot(type, pos, (dir + 360 - 10) % 360);
 		break;
 	case GUN_BUBBLE:
-		BossMakeShot(type, pos, dir + 10 * sin((double)count / (lastcount/2) * M_PI)); //2n + 1 - n
+		BossMakeShot(type, pos, dir + 10 * sin((double)count / (MAX_COUNT/2) * M_PI)); //2n + 1 - n
 		break;
 		case GUN_MILK:
-		//BossMakeShot(type, pos, dir + 10 * sin((double)count / (lastcount/2) * M_PI));
-		j=1;
+		//BossMakeShot(type, pos, dir + 10 * sin((double)count / (MAX_COUNT/2) * M_PI));
+		j=2;
 		///*
 		for(i=0; i<j; i++)
-			BossMakeShot(type, pos, count * MAX_COUNT / lastcount * 6 + i * 360/j);
+			BossMakeShot(type, pos, count * 360 / MAX_COUNT + 360 * i / j);
 		//*/
 		break;
 	case GUN_5SHOT:
@@ -589,9 +605,13 @@ Pos MoveBoss(Pos pos, int command){
 	switch(command){
 	case MOVE_UP:
 		newpos.y = pos.y - 1;
+		if(newpos.y < 0)
+			newpos.y = pos.y;
 		break;
 	case MOVE_DOWN:
 		newpos.y = pos.y + 1;
+		if(newpos.y + gBoss.h > HEIGHT)
+			newpos.y = pos.y;
 		break;
 	default:
 		break;
@@ -608,7 +628,7 @@ Pos MoveBoss(Pos pos, int command){
 *****************************************************************/
 int MoveDir(int startdir, int goaldir)
 {
-	return (startdir + (count * (goaldir-startdir) / (lastcount/2))) % 360; //(lastcount / n)でn倍速く回転
+	return (startdir + (count * (goaldir-startdir) / (MAX_COUNT/2))) % 360; //(MAX_COUNT / n)でn倍速く回転
 }
 
 /*****************************************************************
@@ -619,80 +639,83 @@ int MoveDir(int startdir, int goaldir)
 *****************************************************************/
 void MoveShot()
 {
-	int i, j, k;
+	int i, j;
 	Pos newpos;
-	for(i=0; i<MAX_COUNT/lastcount; i++)
-		for(j=0; j<MAX_SHOT; j++)
-			if(gShot[j].state == LIVING){
-				gShot[j].pos.x = gShot[j].pos.x + 10 * sin(gShot[j].dir * M_PI /180);
-				gShot[j].pos.y = gShot[j].pos.y - 10 * cos(gShot[j].dir * M_PI /180);
-				newpos.x = gShot[j].pos.x;
-				newpos.y = gShot[j].pos.y;
+	for(i=0; i<MAX_SHOT; i++){
+		if(gShot[i].state == LIVING){
+			gShot[i].pos.x = gShot[i].pos.x + 10 * sin(gShot[i].dir * M_PI /180);
+			gShot[i].pos.y = gShot[i].pos.y - 10 * cos(gShot[i].dir * M_PI /180);
+			newpos.x = gShot[i].pos.x;
+			newpos.y = gShot[i].pos.y;
 
-				/* 壁と衝突時 */
-				if((newpos.x <= 0) || (newpos.x >= F_WIDTH) || (newpos.y <= 0) || (newpos.y >= HEIGHT)){
-					gShot[j].state = DEAD;
+			/* 壁と衝突時 */
+			if((newpos.x <= 0) || (newpos.x >= F_WIDTH) || (newpos.y <= 0) || (newpos.y >= HEIGHT)){
+				gShot[i].state = DEAD;
+			}
+			/* 玉とキャラとの衝突時 */
+			if(tState != ADVENTURE){
+				for(j=0; j<CT_NUM; j++){
+					if(j != gShot[i].id && gChara[j].state == LIVING &&
+							newpos.x >= gChara[j].pos.x && newpos.x <= gChara[j].pos.x + S_SIZE &&
+							newpos.y >= gChara[j].pos.y && newpos.y <= gChara[j].pos.y + S_SIZE){ //キャラの当たり判定
+						gShot[i].state = DEAD;
+						gChara[j].hp -= gChara[gShot[i].id].atk;
+						if( gChara[j].hp <= 0 ){
+							gChara[j].state = DEAD;
+							restplayer--;
+						}
+						if(restplayer == 1){
+							if(gChara[0].state == LIVING)
+								win = 1;
+							else win = 0;
+							mState = MAIN_RESULT;
+						}
+					}
 				}
-				/* 玉とキャラとの衝突時 */
-				if(tState != ADVENTURE)
-					for(k=0; k<CT_NUM; k++){
-						if(k != gShot[j].id && gChara[k].state == LIVING && gShot[j].state == LIVING &&
-								newpos.x >= gChara[k].pos.x && newpos.x <= gChara[k].pos.x + S_SIZE &&
-								newpos.y >= gChara[k].pos.y && newpos.y <= gChara[k].pos.y + S_SIZE){ //キャラの当たり判定
-							gShot[j].state = DEAD;
-							gChara[k].hp -= gChara[gShot[j].id].atk;
-							if( gChara[k].hp <= 0 ){
-								gChara[k].state = DEAD;
+			}
+			else{ //ADVENTURE
+				/* Player -> Boss */
+				if(gShot[i].id >= 0){
+					if(gBoss.state == LIVING &&
+							newpos.x >= gBoss.pos.x && newpos.x <= gBoss.pos.x + gBoss.w &&
+							newpos.y >= gBoss.pos.y && newpos.y <= gBoss.pos.y + gBoss.h){ //当たり判定
+						gShot[i].state = DEAD;
+						gBoss.hp -= gChara[gShot[i].id].atk;
+						if(gBoss.hp <= 0 ){
+							if(gBoss.next == -1){
+								gBoss.state = DEAD;
+								win = 1;
+								mState = MAIN_RESULT;
+							}
+							else{
+								gBoss.no = gBoss.next;
+								InitAdventure();
+							}
+						}
+					}
+				}
+				/* Boss -> Player */
+				else{
+					for(j=0; j<CT_NUM; j++){
+						if(gChara[j].state == LIVING &&
+								newpos.x >= gChara[j].pos.x && newpos.x <= gChara[j].pos.x + S_SIZE &&
+								newpos.y >= gChara[j].pos.y && newpos.y <= gChara[j].pos.y + S_SIZE){ //キャラの当たり判定
+							gShot[i].state = DEAD;
+							gChara[j].hp -= gBoss.atk[gShot[i].id + MAX_BOSSGUN];
+							if( gChara[j].hp <= 0 ){
+								gChara[j].state = DEAD;
 								restplayer--;
 							}
-							if(restplayer == 1){
-								if(gChara[0].state == LIVING)
-									win = 1;
-								else win = 0;
+							if(restplayer == 0){
+								win = 0;
 								mState = MAIN_RESULT;
 							}
 						}
 					}
-				else //ADVENTURE
-					/* Player -> Boss */
-					if(gShot[j].id >= 0){
-						if(gBoss.state == LIVING && gShot[j].state == LIVING &&
-								newpos.x >= gBoss.pos.x && newpos.x <= gBoss.pos.x + gBoss.w &&
-								newpos.y >= gBoss.pos.y && newpos.y <= gBoss.pos.y + gBoss.h){ //当たり判定
-							gShot[j].state = DEAD;
-							gBoss.hp -= gChara[gShot[j].id].atk;
-							if(gBoss.hp <= 0 ){
-								if(gBoss.next == -1){
-									gBoss.state = DEAD;
-									win = 1;
-									mState = MAIN_RESULT;
-								}
-								else{
-									gBoss.no = gBoss.next;
-									InitAdventure();
-								}
-							}
-						}
-					}
-					/* Boss -> Player */
-					else
-						for(k=0; k<CT_NUM; k++){
-							if(gChara[k].state == LIVING && gShot[j].state == LIVING &&
-									newpos.x >= gChara[k].pos.x && newpos.x <= gChara[k].pos.x + S_SIZE &&
-									newpos.y >= gChara[k].pos.y && newpos.y <= gChara[k].pos.y + S_SIZE){ //キャラの当たり判定
-								gShot[j].state = DEAD;
-								gChara[k].hp -= gBoss.atk[gShot[j].id + MAX_BOSSGUN];
-								if( gChara[k].hp <= 0 ){
-									gChara[k].state = DEAD;
-									restplayer--;
-								}
-								if(restplayer == 0){
-									win = 0;
-									mState = MAIN_RESULT;
-								}
-							}
-						}
+				}
 			}
+		}
+	}
 }
 
 /* end of system.c */

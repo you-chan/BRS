@@ -28,10 +28,7 @@
 #define MAX_COMMAND 6			/* コマンドの最大格納数 */
 #define MAX_BOSSCOMMAND 8		/* ボス用コマンドの最大格納数 */
 #define MAX_SHOT 300
-#define MAX_COUNT 60			/* 最大カウント、減らすほど速度up */
-#define MAX_SPEED 6			/* 最大再生スピード倍率 */
-int lastcount;
-int gspeed;						/* ゲームスピード */
+#define MAX_COUNT 30			/* 最大カウント、減らすほど速度up */
 
 /* ゲームの状態 */
 typedef enum{
@@ -89,10 +86,11 @@ enum{
 
 	GUN_MILK		= 3, /* ミルクの科学 */
 	GUN_5SHOT		= 4, /* 5ショット */
+	GUN_POP			= 5, /* 炸裂弾 */
 
-	MAX_PLAYERGUN	= 3, /* 使用可能な武器の数 */
-	MAX_GUN			= 5, /* 敵用の武器も含めた武器の数 */
-	MAX_BOSSGUN		= 3, /* 敵が一度に使用可能な武器の数 */
+	MAX_PLAYERGUN	= 3, /* プレイヤーが使用可能な武器の数 */
+	MAX_GUN			= 5, /* ボス用の武器も含めた武器の数 */
+	MAX_BOSSGUN		= 3, /* ボスが一度に使用可能な武器の数 */
 
 	ARMOR_LIGHT		= 0, /* 軽 */
 	ARMOR_MIDDLE	= 1, /* 中 */
@@ -103,8 +101,9 @@ enum{
 enum{
 	SENKOUSHA	= 0,
 	GAHARA		= 1,
+	SUDACHI		= 2,
 
-	MAX_BOSS	= 2
+	MAX_BOSS	= 3
 };
 
 enum{
@@ -205,6 +204,7 @@ typedef struct{
 /* 玉の情報 */
 typedef struct{
 	int id; /* 撃ったキャラの番号 */
+	int gun;
 	Pos pos;
 	int dir;
 	int color;
