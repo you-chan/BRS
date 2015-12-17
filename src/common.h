@@ -83,13 +83,15 @@ enum{
 	GUN_1SHOT		= 0, /* 1ショット */
 	GUN_3SHOT		= 1, /* 3ショット */
 	GUN_BUBBLE		= 2, /* バブル */
-
 	GUN_MILK		= 3, /* ミルクの科学 */
-	GUN_5SHOT		= 4, /* 5ショット */
-	GUN_POP			= 5, /* 炸裂弾 */
+	GUN_1LASER		= 4, /* レーザー */
 
-	MAX_PLAYERGUN	= 3, /* プレイヤーが使用可能な武器の数 */
-	MAX_GUN			= 5, /* ボス用の武器も含めた武器の数 */
+	GUN_5SHOT		= 5, /* 5ショット */
+	GUN_3LASER		= 6, /* 3レーザー */
+	GUN_NUCLEAR		= 7,
+
+	MAX_PLAYERGUN	= 5, /* プレイヤーが使用可能な武器の数 */
+	MAX_GUN			= 8, /* ボス用の武器も含めた武器の数 */
 	MAX_BOSSGUN		= 3, /* ボスが一度に使用可能な武器の数 */
 
 	ARMOR_LIGHT		= 0, /* 軽 */
@@ -99,11 +101,12 @@ enum{
 };
 
 enum{
-	SENKOUSHA	= 0,
-	GAHARA		= 1,
-	SUDACHI		= 2,
+	SENKOUSHA		= 0,
+	GAHARA			= 1,
+	SUDACHI			= 2,
+	SHIBBOLETH		= 3,
 
-	MAX_BOSS	= 3
+	MAX_BOSSTYPE	= 4
 };
 
 enum{
@@ -122,9 +125,17 @@ enum{
 	BOSS_FIRE		= 2
 };
 
+enum{
+	SHOT	= 0,
+	LASER	= 1
+};
+
 /* 武器の情報 */
 typedef struct{
 	int atk;	/* 攻撃力 */
+	int type;	/* 弾 or レーザー */
+	int speed;	/* 弾速 */
+	int size;	/* 弾の大きさ */
 	int color;	/* 玉の色(16進数) */
 }GunInfo;
 
@@ -204,9 +215,12 @@ typedef struct{
 /* 玉の情報 */
 typedef struct{
 	int id; /* 撃ったキャラの番号 */
-	int gun;
+	int type;
 	Pos pos;
+	Pos startpos;
 	int dir;
+	int speed;
+	int size;
 	int color;
 	CharaState state;
 } ShotInfo;
@@ -230,7 +244,7 @@ GunInfo gGun[MAX_GUN];
 ArmorInfo gArmor[MAX_ARMOR];
 ShotInfo gShot[MAX_SHOT];
 CharaInfo gChara[MAX_CT];
-BossInfo bInfo[MAX_BOSS];
+BossInfo bInfo[MAX_BOSSTYPE];
 EnemyInfo gBoss;
 CommandInfo gCommand;
 

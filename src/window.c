@@ -15,13 +15,14 @@ static char ResultImgFile[2][16] = {"img/win.png", "img/lose.png"};
 static char NumberImgFile[] = {"img/number.png"};
 static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
-static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png"};
+static char BossImgFile[MAX_BOSSTYPE][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png", "img/boss03.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
 static char ChooseImgFile[] = "img/choose.png";
 static char CommandImgFile[]    = "img/command01.png";
 static char miniCommandImgFile[]    = "img/command02.png";
+static char InfoImgFile[] = "img/info.png";
 
 static SDL_Surface *gMainWindow;
 static SDL_Surface *BRSWindow;
@@ -29,13 +30,14 @@ static SDL_Surface *TitleWindow;
 static SDL_Surface *ResultWindow[2];
 static SDL_Surface *NumWindow;
 static SDL_Surface *ShipWindow[MAX_CT];
-static SDL_Surface *BossWindow[MAX_BOSS];
+static SDL_Surface *BossWindow[MAX_BOSSTYPE];
 static SDL_Surface *GunWindow;
 static SDL_Surface *ArmorWindow;
 static SDL_Surface *ArrowWindow;
 static SDL_Surface *ChooseWindow;
 static SDL_Surface *CommandWindow;
 static SDL_Surface *miniCommandWindow;
+static SDL_Surface *InfoWindow;
 static SDL_Joystick *joystick; //ジョイスティックを特定・利用するための構造体
 
 /* 画像転送用 */
@@ -103,7 +105,7 @@ int InitWindow()
 		}
     }
 
-    for(i=0; i<MAX_BOSS; i++){
+    for(i=0; i<MAX_BOSSTYPE; i++){
     	BossWindow[i] = IMG_Load(BossImgFile[i]);
     	if(BossWindow[i] == NULL){
     		printf("failed to open boss image.");
@@ -146,6 +148,12 @@ int InitWindow()
         printf("failed to open minicommand image.");
         return -1;
     }
+
+    InfoWindow = IMG_Load(InfoImgFile);
+    	if(InfoWindow == NULL){
+        		printf("failed to open info image.");
+        		return -1;
+        }
 
 	/* メインウインドウの作成 */
 	if((gMainWindow = SDL_SetVideoMode(WIDTH, HEIGHT, 32, SDL_SWSURFACE)) == NULL) {
@@ -209,11 +217,26 @@ void DrawTitle()
 *****************************************************************/
 void DrawEdit()
 {
-	Rect rect = {{0, 0, 100, 320}, {F_WIDTH/8, 5 * HEIGHT /8 - 110}}; //とりあえず100*100
+	Rect rect = {{0, 0, 0, 0}, {0, 0}}; //とりあえず100*100
+
 	/* 背景を白にする */
 	SDL_FillRect(gMainWindow,NULL,0x808080);
 	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
 
+	rect.src.x = 0;
+	rect.src.y = 0;
+	rect.src.w = 256;
+	rect.src.h = 768;
+	rect.dst.x = F_WIDTH;
+	rect.dst.y = 0;
+	SDL_BlitSurface(InfoWindow, &(rect.src), gMainWindow, &(rect.dst));
+
+	rect.src.x = 0;
+	rect.src.y = 0;
+	rect.src.w = 100;
+	rect.src.h = 320;
+	rect.dst.x = F_WIDTH / 8;
+	rect.dst.y = 5 * HEIGHT /8 - 110;
 	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
 	rect.dst.x = 3 * F_WIDTH /8;
 	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
@@ -246,7 +269,6 @@ void DrawEdit()
 void DrawMain()
 {
 	SDL_FillRect(gMainWindow,NULL,0x101010);
-	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
 	if(mState == MAIN_RESULT) //結果画面
 		DrawResult();
 	else
@@ -254,8 +276,10 @@ void DrawMain()
 
 	if(mState == MAIN_COMMAND) //コマンド入力
 		DrawCommand();
-	else if(mState == MAIN_MOVE) //コマンド適用
+	else if(mState == MAIN_MOVE){ //コマンド適用
 		DrawShot();
+		boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
+	}
 	SDL_Flip(gMainWindow);
 }
 
@@ -268,13 +292,26 @@ void DrawMain()
 void DrawCommand()
 {
 	int i;
-	Rect rect = {{0, 0, 100, 320}, {F_WIDTH/8, 5 * HEIGHT /8 - 110}};
+	Rect rect = {{0, 0, 0, 0}, {0, 0}};
 
 	/* 選択中のコマンドの描画 */
 	boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
 
-	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.src.x = 256;
+	rect.src.y = 0;
+	rect.src.w = 256;
+	rect.src.h = HEIGHT;
+	rect.dst.x = F_WIDTH;
+	rect.dst.y = 0;
+	SDL_BlitSurface(InfoWindow, &(rect.src), gMainWindow, &(rect.dst));
+
+	rect.src.x = rect.src.y = 0;
+	rect.src.w = 100;
+	rect.src.h = 320;
 	rect.dst.x = 2.5 * F_WIDTH /8;
+	rect.dst.y = 5 * HEIGHT / 8 - 110;
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.dst.x = F_WIDTH/8;
 	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
 
 	/*選択しているコマンドに枠を付ける*/
@@ -349,8 +386,8 @@ void DrawShip()
 		if(gBoss.anipatnum <= 1)
 			rect.src.x = 0;
 		else{
-			gBoss.anipat = ((gBoss.anipat + 1) % gBoss.anipatnum);
-			rect.src.x = gBoss.anipat * gBoss.w;
+			gBoss.anipat = (gBoss.anipat + 1) % (gBoss.anipatnum * 2);
+			rect.src.x = gBoss.anipat/2 * gBoss.w;
 		}
 		rect.src.y = 0;
 		rect.src.w = gBoss.w;
@@ -383,10 +420,33 @@ void DrawShip()
 *****************************************************************/
 void DrawShot()
 {
-	int i;
+	int i, j;
+	double x, y;
+	Pos spos;
 	for(i=0; i<MAX_SHOT; i++){
-		if(gShot[i].state == LIVING)
-			filledCircleColor(gMainWindow, gShot[i].pos.x, gShot[i].pos.y, 10, gShot[i].color);
+		if(gShot[i].state == LIVING){
+			if(gShot[i].type == LASER){
+				spos.x = gBoss.pos.x + gBoss.shotpos[gShot[i].id+MAX_BOSSGUN].x; //発射座標
+				spos.y = gBoss.pos.y + gBoss.shotpos[gShot[i].id+MAX_BOSSGUN].y;
+				if(gShot[i].id >= 0){
+					lineColor(gMainWindow, gChara[gShot[i].id].pos.x+S_SIZE/2, gChara[gShot[i].id].pos.y+S_SIZE/2+1,
+								gShot[i].pos.x, gShot[i].pos.y+1, gShot[i].color);
+				}
+				else{
+					for(j= -gShot[i].size/2; j<gShot[i].size/2+1; j++){
+						x = j; y = (double)j*j/gShot[i].size;
+						lineColor(gMainWindow, spos.x + (x * cos(-gShot[i].dir * M_PI / 180) - y * sin(-gShot[i].dir * M_PI / 180)),
+												spos.y - (x * sin(-gShot[i].dir * M_PI / 180) + y * cos(-gShot[i].dir * M_PI / 180)),
+												gShot[i].pos.x + (x * cos(-gShot[i].dir * M_PI / 180) - gShot[i].size / 4 * sin(-gShot[i].dir * M_PI / 180)),
+												gShot[i].pos.y - (x * sin(-gShot[i].dir * M_PI / 180) + gShot[i].size / 4 * cos(-gShot[i].dir * M_PI / 180)),
+												gShot[i].color);
+					}
+				}
+			}
+			else{
+				filledCircleColor(gMainWindow, gShot[i].pos.x, gShot[i].pos.y, gShot[i].size, gShot[i].color);
+			}
+		}
 	}
 }
 
