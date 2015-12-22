@@ -15,7 +15,8 @@ static char ResultImgFile[2][16] = {"img/win.png", "img/lose.png"};
 static char NumberImgFile[] = {"img/number.png"};
 static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
-static char BossImgFile[MAX_BOSSTYPE][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png", "img/boss03.png"};
+static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png", "img/boss03.png", "img/boss04.png"};
+static char MobImgFile[MAX_MOB][16] =	{"img/mob00.png", "img/mob01.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
@@ -30,7 +31,8 @@ static SDL_Surface *TitleWindow;
 static SDL_Surface *ResultWindow[2];
 static SDL_Surface *NumWindow;
 static SDL_Surface *ShipWindow[MAX_CT];
-static SDL_Surface *BossWindow[MAX_BOSSTYPE];
+static SDL_Surface *BossWindow[MAX_BOSS];
+static SDL_Surface *MobWindow[MAX_MOB];
 static SDL_Surface *GunWindow;
 static SDL_Surface *ArmorWindow;
 static SDL_Surface *ArrowWindow;
@@ -105,10 +107,18 @@ int InitWindow()
 		}
     }
 
-    for(i=0; i<MAX_BOSSTYPE; i++){
+    for(i=0; i<MAX_BOSS; i++){
     	BossWindow[i] = IMG_Load(BossImgFile[i]);
     	if(BossWindow[i] == NULL){
     		printf("failed to open boss image.");
+    		return -1;
+    	}
+    }
+
+    for(i=0; i<MAX_MOB; i++){
+    	MobWindow[i] = IMG_Load(MobImgFile[i]);
+    	if(MobWindow[i] == NULL){
+    		printf("failed to open mob image.");
     		return -1;
     	}
     }
@@ -405,6 +415,33 @@ void DrawShip()
 					gBoss.pos.x - 100 + (gBoss.w +200) * (double)(gBoss.hp) / gBoss.maxhp, gBoss.pos.y + gBoss.h + 10, 0xff000080);
 		rectangleColor(gMainWindow, gBoss.pos.x - 100, gBoss.pos.y + gBoss.h,
 				gBoss.pos.x + gBoss.w + 100, gBoss.pos.y + gBoss.h + 10 , 0xff000080);
+
+		for(i=0; i<MAX_USEMOB; i++){
+			if(gMob[i].state == LIVING){
+				if(gMob[i].anipatnum <= 1)
+					rect.src.x = 0;
+				else{
+					gMob[i].anipat = (gMob[i].anipat + 1) % (gMob[i].anipatnum * 2);
+					rect.src.x = gMob[i].anipat/2 * gMob[i].w;
+				}
+				rect.src.y = 0;
+				rect.src.w = gMob[i].w;
+				rect.src.h = gMob[i].h;
+				rect.dst.x = gMob[i].pos.x;
+				rect.dst.y = gMob[i].pos.y;
+				SDL_BlitSurface(MobWindow[gMob[i].no], &(rect.src), gMainWindow, &(rect.dst));
+
+				//hpを表す四角形を描画
+				if(gMob[i].hp > gMob[i].maxhp/2)
+					boxColor(gMainWindow, gMob[i].pos.x - 50 , gMob[i].pos.y + gMob[i].h,
+							gMob[i].pos.x - 50 + (gMob[i].w + 100) * (double)(gMob[i].hp) / gMob[i].maxhp, gMob[i].pos.y + gMob[i].h + 10, 0x00ff0080);
+				else
+					boxColor(gMainWindow, gMob[i].pos.x - 50 , gMob[i].pos.y + gMob[i].h,
+							gMob[i].pos.x - 50 + (gMob[i].w +100) * (double)(gMob[i].hp) / gMob[i].maxhp, gMob[i].pos.y + gMob[i].h + 10, 0xff000080);
+				rectangleColor(gMainWindow, gMob[i].pos.x - 50, gMob[i].pos.y + gMob[i].h,
+						gMob[i].pos.x + gMob[i].w + 50, gMob[i].pos.y + gMob[i].h + 10 , 0xff000080);
+			}
+		}
 	}
 
 	// 1Pの区別用

@@ -28,7 +28,8 @@
 #define MAX_COMMAND 6			/* コマンドの最大格納数 */
 #define MAX_BOSSCOMMAND 8		/* ボス用コマンドの最大格納数 */
 #define MAX_SHOT 300
-#define MAX_COUNT 30			/* 最大カウント、減らすほど速度up */
+#define MAX_USEMOB 100			/* 使用可能なMobの数 */
+#define MAX_COUNT 20			/* 最大カウント、減らすほど速度up */
 
 /* ゲームの状態 */
 typedef enum{
@@ -89,10 +90,12 @@ enum{
 	GUN_5SHOT		= 5, /* 5ショット */
 	GUN_3LASER		= 6, /* 3レーザー */
 	GUN_NUCLEAR		= 7,
+	GUN_HOMO0		= 8,
+	GUN_HOMO1		= 9,
 
 	MAX_PLAYERGUN	= 5, /* プレイヤーが使用可能な武器の数 */
-	MAX_GUN			= 8, /* ボス用の武器も含めた武器の数 */
 	MAX_BOSSGUN		= 3, /* ボスが一度に使用可能な武器の数 */
+	MAX_GUN			= 10, /* ボス用の武器も含めた武器の数 */
 
 	ARMOR_LIGHT		= 0, /* 軽 */
 	ARMOR_MIDDLE	= 1, /* 中 */
@@ -105,8 +108,14 @@ enum{
 	GAHARA			= 1,
 	SUDACHI			= 2,
 	SHIBBOLETH		= 3,
+	HOMO			= 4,
+	MAX_BOSS		= 5,
 
-	MAX_BOSSTYPE	= 4
+	HOMO0			= 0,
+	HOMO1			= 1,
+	MAX_MOB		= 2,
+
+	DELETE			= -1
 };
 
 enum{
@@ -127,13 +136,14 @@ enum{
 
 enum{
 	SHOT	= 0,
-	LASER	= 1
+	LASER	= 1,
+	MOB		= 2
 };
 
 /* 武器の情報 */
 typedef struct{
+	int type;	/* 弾 or レーザー or Mob */
 	int atk;	/* 攻撃力 */
-	int type;	/* 弾 or レーザー */
 	int speed;	/* 弾速 */
 	int size;	/* 弾の大きさ */
 	int color;	/* 玉の色(16進数) */
@@ -157,15 +167,47 @@ typedef struct{
     double y;
 } Pos;
 
+/* Mobの情報 */
+typedef struct{
+    int command; 	/* 発射コマンド, 6桁 */
+	int gun;			/* 装備中の武器 */
+	int hp;							/* 最大HP */
+	int speed;						/* 速度 */
+	int w;
+	int h;
+	int anipat;						/* アニメのパターン */
+} MobData;
+
+typedef struct{
+	int no;							/* 個体 */
+	int id;							/* 所有者 */
+    Pos pos;						/* 発射座標 */
+	CharaState state;
+    int dir;						/* キャラクターの角度 */
+    int startdir;					/* 変更開始時の角度 */
+    int goaldir;					/* 変更後の角度 */
+    int command[MAX_COMMAND];
+    int commandnum;
+	int gun;						/* 装備中の武器 */
+	int maxhp;						/* 最大HP */
+	int hp;							/* 現在HP */
+	int atk;
+	int speed;
+	int w;
+	int h;
+	int anipat;						/* アニメのパターン */
+	int anipatnum;					/* アニメのパターンの最大数 */
+} MobInfo;
+
 /* キャラクターの情報 */
 typedef struct{
     Pos pos;					/* 座標 */
+	CharaState state;
     int dir;					/* キャラクターの角度 */
     int startdir;				/* 変更開始時の角度 */
     int goaldir;				/* 変更後の角度 */
     int command[MAX_COMMAND]; 	/* コマンドの格納 */
     int commandnum;				/* コマンドの数 */
-	CharaState state;
 	int gun;					/* 装備中の武器 */
 	int armor;					/* 装備中の防具 */
 	int maxhp;					/* 最大HP */
@@ -186,13 +228,11 @@ typedef struct{
 	int h;
 	int anipat;						/* アニメのパターン */
 	int next;						/* 次の形態 */
-} BossInfo;
+} BossData;
 
 typedef struct{
 	int no;											/* 個体 */
     Pos pos;										/* 座標 */
-    //Pos startpos;									/* 移動開始時の座標 */
-    Pos goalpos;									/* 移動目標 */
     Pos shotpos[MAX_BOSSGUN];						/* 発射座標 */
     int dir[MAX_BOSSGUN];							/* キャラクターの角度 */
     int startdir[MAX_BOSSGUN];						/* 変更開始時の角度 */
@@ -210,7 +250,7 @@ typedef struct{
 	int anipat;										/* アニメのパターン */
 	int anipatnum;									/* アニメのパターンの最大数 */
 	int next;										/* 次の形態 */
-} EnemyInfo;
+} BossInfo;
 
 /* 玉の情報 */
 typedef struct{
@@ -244,8 +284,10 @@ GunInfo gGun[MAX_GUN];
 ArmorInfo gArmor[MAX_ARMOR];
 ShotInfo gShot[MAX_SHOT];
 CharaInfo gChara[MAX_CT];
-BossInfo bInfo[MAX_BOSSTYPE];
-EnemyInfo gBoss;
+BossData bData[MAX_BOSS];
+BossInfo gBoss;
+MobData mData[MAX_MOB];
+MobInfo gMob[MAX_USEMOB];
 CommandInfo gCommand;
 
 #endif /* BRS_SRC_COMMON_H_ */

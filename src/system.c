@@ -3,13 +3,13 @@
 #include "common.h"
 #include "func.h"
 
-static Pos BossDecideGoal(Pos pos, int w, int h, int command, int speed);
 static int DecideDir(int ct, Pos pos);
 static int DecideDistance(Pos p1, Pos p2);
 static void Fire(int ct);
 static void BossFire(int gun, Pos pos, int dir);
 static void MakeShot(int ct, int dir);
 static void BossMakeShot(int gun, Pos pos, int dir);
+static void MakeMob(int ct, GunInfo gun, Pos pos, int dir);
 static Pos MoveChara(int ct, Pos pos, int dir, int speed);
 static Pos MoveBoss(Pos pos, int command);
 static int MoveDir(int startdir, int goaldir);
@@ -30,51 +30,57 @@ void InitSystem()
 
 	gState = GAME_TITLE;
 
+	gGun[GUN_1SHOT].type	= SHOT;
 	gGun[GUN_1SHOT].atk		= 100;
 	gGun[GUN_1SHOT].speed	= 10;
-	gGun[GUN_1SHOT].type	= SHOT;
 	gGun[GUN_1SHOT].size	= 10;
 	gGun[GUN_1SHOT].color	= 0xFF0000FF;
+	gGun[GUN_3SHOT].type	= SHOT;
 	gGun[GUN_3SHOT].atk		= 70;
 	gGun[GUN_3SHOT].speed	= 10;
-	gGun[GUN_3SHOT].type	= SHOT;
 	gGun[GUN_3SHOT].size	= 10;
 	gGun[GUN_3SHOT].color	= 0xFF00FFFF;
+	gGun[GUN_5SHOT].type	= SHOT;
 	gGun[GUN_5SHOT].atk		= 50;
 	gGun[GUN_5SHOT].speed	= 10;
-	gGun[GUN_5SHOT].type	= SHOT;
 	gGun[GUN_5SHOT].size	= 10;
 	gGun[GUN_5SHOT].color	= 0xC0C0C0FF;
+	gGun[GUN_1SHOT].type	= SHOT;
 	gGun[GUN_1SHOT].atk		= 100;
 	gGun[GUN_1SHOT].speed	= 10;
-	gGun[GUN_1SHOT].type	= SHOT;
 	gGun[GUN_1SHOT].size	= 10;
 	gGun[GUN_1SHOT].color	= 0xFF0000FF;
+	gGun[GUN_NUCLEAR].type	= SHOT;
 	gGun[GUN_NUCLEAR].atk	= 1000;
 	gGun[GUN_NUCLEAR].speed	= 1;
-	gGun[GUN_NUCLEAR].type	= SHOT;
 	gGun[GUN_NUCLEAR].size	= 20;
 	gGun[GUN_NUCLEAR].color	= 0x000000FF;
+	gGun[GUN_1LASER].type	= LASER;
 	gGun[GUN_1LASER].atk	= 5;
 	gGun[GUN_1LASER].speed	= 1;
-	gGun[GUN_1LASER].type	= LASER;
 	gGun[GUN_1LASER].size	= 10;
 	gGun[GUN_1LASER].color  = 0x00FFFFFF;
+	gGun[GUN_3LASER].type	= LASER;
 	gGun[GUN_3LASER].atk	= 3;
 	gGun[GUN_3LASER].speed	= 1;
-	gGun[GUN_3LASER].type	= LASER;
 	gGun[GUN_3LASER].size	= 30;
 	gGun[GUN_3LASER].color  = 0xFFFFFFFF;
+	gGun[GUN_BUBBLE].type	= SHOT;
 	gGun[GUN_BUBBLE].atk	= 3;
 	gGun[GUN_BUBBLE].speed	= 10;
-	gGun[GUN_BUBBLE].type	= SHOT;
 	gGun[GUN_BUBBLE].size	= 10;
 	gGun[GUN_BUBBLE].color	= 0x0000FF80;
+	gGun[GUN_MILK].type		= SHOT;
 	gGun[GUN_MILK].atk		= 3;
 	gGun[GUN_MILK].speed	= 10;
-	gGun[GUN_MILK].type		= SHOT;
 	gGun[GUN_MILK].size		= 10;
 	gGun[GUN_MILK].color	= 0xFFFFFFFF;
+
+	gGun[GUN_HOMO0].type	= MOB;
+	gGun[GUN_HOMO0].atk		= HOMO0;
+	gGun[GUN_HOMO0].speed	= 2;
+	gGun[GUN_HOMO0].size	= 10;
+	gGun[GUN_HOMO0].color	= 0x000000FF;
 
 	gArmor[ARMOR_LIGHT].hp		= 300;
 	gArmor[ARMOR_LIGHT].speed	= 10;
@@ -83,85 +89,102 @@ void InitSystem()
 	gArmor[ARMOR_HEAVY].hp		= 800;
 	gArmor[ARMOR_HEAVY].speed	= 3;
 
-	bInfo[SENKOUSHA].hp				= 2000;
-	bInfo[SENKOUSHA].w				= 200;
-	bInfo[SENKOUSHA].h				= 400;
-	bInfo[SENKOUSHA].speed			= 50;
-	bInfo[SENKOUSHA].gun[0]			= GUN_1LASER;
-	bInfo[SENKOUSHA].gun[1]			= -1;
-	bInfo[SENKOUSHA].gun[2]			= -1;
-	bInfo[SENKOUSHA].shotpos[0].x	= 72;		//右目
-	bInfo[SENKOUSHA].shotpos[0].y	= 20;
-	bInfo[SENKOUSHA].shotpos[1].x	= 97;		//左目
-	bInfo[SENKOUSHA].shotpos[1].y	= 15;
-	bInfo[SENKOUSHA].shotpos[2].x	= 76;		//腰
-	bInfo[SENKOUSHA].shotpos[2].y	= 188;
-	bInfo[SENKOUSHA].shotcommand[0]	= 12121212; //12001200 //武器0
-	bInfo[SENKOUSHA].shotcommand[1]	=  1200120;
-	bInfo[SENKOUSHA].shotcommand[2]	= 02020202;
-	bInfo[SENKOUSHA].movecommand	= 10201020;
-	bInfo[SENKOUSHA].anipat			= 1;
-	bInfo[SENKOUSHA].next			= GAHARA;
+	mData[HOMO0].hp			= 500;
+	mData[HOMO0].w			= 100;
+	mData[HOMO0].h			= 100;
+	mData[HOMO0].speed		= 50;
+	mData[HOMO0].gun		= GUN_1SHOT;
+	mData[HOMO0].command	= 898989;
+	mData[HOMO0].anipat		= 1;
 
-	bInfo[GAHARA].hp				= 6000;
-	bInfo[GAHARA].w					= 300;
-	bInfo[GAHARA].h					= 300;
-	bInfo[GAHARA].speed				= 200;
-	bInfo[GAHARA].gun[0]			= GUN_MILK;
-	bInfo[GAHARA].gun[1]			= GUN_1LASER;
-	bInfo[GAHARA].gun[2]			= GUN_1LASER;
-	bInfo[GAHARA].shotpos[0].x		= 60;
-	bInfo[GAHARA].shotpos[0].y		= 75;
-	bInfo[GAHARA].shotpos[1].x		= 240;
-	bInfo[GAHARA].shotpos[1].y		= 75;
-	bInfo[GAHARA].shotpos[2].x		= 158;
-	bInfo[GAHARA].shotpos[2].y		= 136;
-	bInfo[GAHARA].shotcommand[0]	=  2020202; //12001200 //武器0
-	bInfo[GAHARA].shotcommand[1]	= 12000012;
-	bInfo[GAHARA].shotcommand[2]	= 00120012;
-	bInfo[GAHARA].movecommand		= 12121212;
-	bInfo[GAHARA].anipat			= 8;
-	bInfo[GAHARA].next				= -1;
 
-	bInfo[SUDACHI].hp				= 6000;
-	bInfo[SUDACHI].w				= 300;
-	bInfo[SUDACHI].h				= 300;
-	bInfo[SUDACHI].speed			= 200;
-	bInfo[SUDACHI].gun[0]			= GUN_3LASER;
-	bInfo[SUDACHI].gun[1]			= GUN_3LASER;
-	bInfo[SUDACHI].gun[2]			= GUN_MILK;
-	bInfo[SUDACHI].shotpos[0].x		= 148;
-	bInfo[SUDACHI].shotpos[0].y		= 250;
-	bInfo[SUDACHI].shotpos[1].x		= 148;
-	bInfo[SUDACHI].shotpos[1].y		= 250;
-	bInfo[SUDACHI].shotpos[2].x		= 148;
-	bInfo[SUDACHI].shotpos[2].y		= 250;
-	bInfo[SUDACHI].shotcommand[0]	= 00120012; //12001200 //武器0
-	bInfo[SUDACHI].shotcommand[1]	= 12001200;
-	bInfo[SUDACHI].shotcommand[2]	= 22222222;
-	bInfo[SUDACHI].movecommand		= 12121212;
-	bInfo[SUDACHI].anipat			= 2;
-	bInfo[SUDACHI].next				= -1;
+	mData[HOMO1].hp			= 500;
+	mData[HOMO1].w			= 75;
+	mData[HOMO1].h			= 100;
+	mData[HOMO1].speed		= 50;
+	mData[HOMO1].gun		= GUN_1SHOT;
+	mData[HOMO1].command	= 898989;
+	mData[HOMO1].anipat		= 1;
 
-	bInfo[SHIBBOLETH].hp				= 6000;
-	bInfo[SHIBBOLETH].w					= 250;
-	bInfo[SHIBBOLETH].h					= 300;
-	bInfo[SHIBBOLETH].speed				= 200;
-	bInfo[SHIBBOLETH].gun[0]			= GUN_NUCLEAR;
-	bInfo[SHIBBOLETH].gun[1]			= -1;
-	bInfo[SHIBBOLETH].gun[2]			= -1;
-	bInfo[SHIBBOLETH].shotpos[0].x		= 47;
-	bInfo[SHIBBOLETH].shotpos[0].y		= 55;
-	bInfo[SHIBBOLETH].shotpos[1].x		= 47;
-	bInfo[SHIBBOLETH].shotpos[1].y		= 55;
-	bInfo[SHIBBOLETH].shotpos[2].x		= 47;
-	bInfo[SHIBBOLETH].shotpos[2].y		= 55;
-	bInfo[SHIBBOLETH].shotcommand[0]	= 12121212; //12001200 //武器0
-	bInfo[SHIBBOLETH].shotcommand[1]	= 12121212;
-	bInfo[SHIBBOLETH].shotcommand[2]	= 0;
-	bInfo[SHIBBOLETH].movecommand		= 10201020;
-	bInfo[SHIBBOLETH].anipat			= 1;
-	bInfo[SHIBBOLETH].next				= -1;
+	bData[SENKOUSHA].hp				= 2000;
+	bData[SENKOUSHA].w				= 200;
+	bData[SENKOUSHA].h				= 400;
+	bData[SENKOUSHA].speed			= 50;
+	bData[SENKOUSHA].gun[0]			= GUN_1LASER;
+	bData[SENKOUSHA].gun[1]			= -1;
+	bData[SENKOUSHA].gun[2]			= -1;
+	bData[SENKOUSHA].shotpos[0].x	= 72;		//右目
+	bData[SENKOUSHA].shotpos[0].y	= 20;
+	bData[SENKOUSHA].shotpos[1].x	= 97;		//左目
+	bData[SENKOUSHA].shotpos[1].y	= 15;
+	bData[SENKOUSHA].shotpos[2].x	= 76;		//腰
+	bData[SENKOUSHA].shotpos[2].y	= 188;
+	bData[SENKOUSHA].shotcommand[0]	= 12121212; //12001200 //武器0
+	bData[SENKOUSHA].shotcommand[1]	=  1200120;
+	bData[SENKOUSHA].shotcommand[2]	= 02020202;
+	bData[SENKOUSHA].movecommand	= 10201020;
+	bData[SENKOUSHA].anipat			= 1;
+	bData[SENKOUSHA].next			= DELETE;
+
+	bData[GAHARA].hp				= 6000;
+	bData[GAHARA].w					= 300;
+	bData[GAHARA].h					= 300;
+	bData[GAHARA].speed				= 200;
+	bData[GAHARA].gun[0]			= GUN_HOMO0;
+	bData[GAHARA].gun[1]			= GUN_HOMO0;
+	bData[GAHARA].gun[2]			= GUN_HOMO0;
+	bData[GAHARA].shotpos[0].x		= 60;
+	bData[GAHARA].shotpos[0].y		= 75;
+	bData[GAHARA].shotpos[1].x		= 240;
+	bData[GAHARA].shotpos[1].y		= 75;
+	bData[GAHARA].shotpos[2].x		= 158;
+	bData[GAHARA].shotpos[2].y		= 136;
+	bData[GAHARA].shotcommand[0]	= 20000000; //12001200 //武器0
+	bData[GAHARA].shotcommand[1]	= 20000000;
+	bData[GAHARA].shotcommand[2]	= 20000000;
+	bData[GAHARA].movecommand		= 12121212;
+	bData[GAHARA].anipat			= 8;
+	bData[GAHARA].next				= DELETE;
+
+	bData[SUDACHI].hp				= 6000;
+	bData[SUDACHI].w				= 300;
+	bData[SUDACHI].h				= 300;
+	bData[SUDACHI].speed			= 200;
+	bData[SUDACHI].gun[0]			= GUN_3LASER;
+	bData[SUDACHI].gun[1]			= GUN_3LASER;
+	bData[SUDACHI].gun[2]			= GUN_MILK;
+	bData[SUDACHI].shotpos[0].x		= 148;
+	bData[SUDACHI].shotpos[0].y		= 250;
+	bData[SUDACHI].shotpos[1].x		= 148;
+	bData[SUDACHI].shotpos[1].y		= 250;
+	bData[SUDACHI].shotpos[2].x		= 148;
+	bData[SUDACHI].shotpos[2].y		= 250;
+	bData[SUDACHI].shotcommand[0]	= 00120012; //12001200 //武器0
+	bData[SUDACHI].shotcommand[1]	= 12001200;
+	bData[SUDACHI].shotcommand[2]	= 22222222;
+	bData[SUDACHI].movecommand		= 12121212;
+	bData[SUDACHI].anipat			= 2;
+	bData[SUDACHI].next				= DELETE;
+
+	bData[SHIBBOLETH].hp				= 6000;
+	bData[SHIBBOLETH].w					= 250;
+	bData[SHIBBOLETH].h					= 300;
+	bData[SHIBBOLETH].speed				= 200;
+	bData[SHIBBOLETH].gun[0]			= GUN_HOMO0;
+	bData[SHIBBOLETH].gun[1]			= -1;
+	bData[SHIBBOLETH].gun[2]			= -1;
+	bData[SHIBBOLETH].shotpos[0].x		= 47;
+	bData[SHIBBOLETH].shotpos[0].y		= 55;
+	bData[SHIBBOLETH].shotpos[1].x		= 47;
+	bData[SHIBBOLETH].shotpos[1].y		= 55;
+	bData[SHIBBOLETH].shotpos[2].x		= 47;
+	bData[SHIBBOLETH].shotpos[2].y		= 55;
+	bData[SHIBBOLETH].shotcommand[0]	= 0; //12001200 //武器0
+	bData[SHIBBOLETH].shotcommand[1]	= 12121212;
+	bData[SHIBBOLETH].shotcommand[2]	= 0;
+	bData[SHIBBOLETH].movecommand		= 10201020;
+	bData[SHIBBOLETH].anipat			= 1;
+	bData[SHIBBOLETH].next				= DELETE;
 }
 
 /*****************************************************************
@@ -252,8 +275,13 @@ void InitMain()
 		gChara[i].atk	= gGun[gChara[i].gun].atk;
 		gChara[i].speed = gArmor[gChara[i].armor].speed;
 		gChara[i].commandnum = 0;
-		for(j=0; j<MAX_COMMAND; j++)
+		for(j=0; j<MAX_COMMAND; j++){
 			gChara[i].command[j] = -1;
+		}
+		for(j=0; j<MAX_USEMOB; j++){
+			gMob[j].state = DEAD;
+			gMob[j].pos.x = gMob[j].pos.y = 0;
+		}
 	}
 
 	/* 玉の初期化 */
@@ -278,28 +306,26 @@ void InitMain()
 void InitAdventure()
 {
 	int i, j;
-	gBoss.hp	= gBoss.maxhp = bInfo[gBoss.no].hp;
-	gBoss.w		= bInfo[gBoss.no].w;
-	gBoss.h		= bInfo[gBoss.no].h;
+	gBoss.hp	= gBoss.maxhp = bData[gBoss.no].hp;
+	gBoss.w		= bData[gBoss.no].w;
+	gBoss.h		= bData[gBoss.no].h;
 	gBoss.pos.x	= F_WIDTH - gBoss.w - 100;
 	gBoss.pos.y	= (HEIGHT-gBoss.h)/2;
-	gBoss.goalpos  = BossDecideGoal(gBoss.pos, gBoss.w, gBoss.h,
-									gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND], gBoss.speed);
 	gBoss.state	= LIVING;
-	gBoss.speed	 = bInfo[gBoss.no].speed;
+	gBoss.speed	 = bData[gBoss.no].speed;
 	gBoss.anipat = 0;
-	gBoss.anipatnum = bInfo[gBoss.no].anipat;
-	gBoss.next 		= bInfo[gBoss.no].next;
+	gBoss.anipatnum = bData[gBoss.no].anipat;
+	gBoss.next 		= bData[gBoss.no].next;
 	for(i=0; i<MAX_BOSSCOMMAND; i++){
-		gBoss.movecommand[i] = (int)(bInfo[gBoss.no].movecommand/pow(10, MAX_BOSSCOMMAND-i-1)) % 10;
+		gBoss.movecommand[i] = (int)(bData[gBoss.no].movecommand/pow(10, MAX_BOSSCOMMAND-i-1)) % 10;
 	}
 	for(i=0; i<MAX_BOSSGUN; i++){
 		gBoss.dir[i] = 0;
-		gBoss.gun[i] = bInfo[gBoss.no].gun[i];
+		gBoss.gun[i] = bData[gBoss.no].gun[i];
 		gBoss.atk[i] = gGun[gBoss.gun[i]].atk;
-		gBoss.shotpos[i] = bInfo[gBoss.no].shotpos[i];
+		gBoss.shotpos[i] = bData[gBoss.no].shotpos[i];
 		for(j=0; j<MAX_BOSSCOMMAND; j++){
-			gBoss.shotcommand[i][j] = (int)(bInfo[gBoss.no].shotcommand[i]/pow(10, MAX_BOSSCOMMAND-j-1)) % 10;
+			gBoss.shotcommand[i][j] = (int)(bData[gBoss.no].shotcommand[i]/pow(10, MAX_BOSSCOMMAND-j-1)) % 10;
 		}
 	}
 }
@@ -343,25 +369,46 @@ void UseCommand()
 		}
 		/* Boss */
 		if(tState == ADVENTURE && gBoss.state == LIVING){
-			gBoss.goalpos  = BossDecideGoal(gBoss.pos, gBoss.w, gBoss.h,
-											gBoss.movecommand[nowcommand % MAX_BOSSCOMMAND], gBoss.speed);
 			for(i=0; i<MAX_BOSSGUN; i++){
 				bpos.x = gBoss.pos.x + gBoss.shotpos[i].x;
 				bpos.y = gBoss.pos.y + gBoss.shotpos[i].y;
 				switch(gBoss.shotcommand[i][nowcommand % MAX_BOSSCOMMAND]){
 				case BOSS_SCOPE: //照準
-					bpos.x = gBoss.goalpos.x + gBoss.shotpos[i].x; //移動後から狙いを定めるならpos->goalposに?
-					bpos.y = gBoss.goalpos.y + gBoss.shotpos[i].y;
+					bpos.x = gBoss.pos.x + gBoss.shotpos[i].x; //移動後から狙いを定めるならpos->goalposに?
+					bpos.y = gBoss.pos.y + gBoss.shotpos[i].y;
 					gBoss.startdir[i] = (gBoss.dir[i] % 360);
 					gBoss.goaldir[i] = DecideDir(BOSS, bpos);
 					break;
 				case BOSS_FIRE: //発射
+					if(gGun[gBoss.gun[i]].type == MOB){
+						MakeMob(BOSS, gGun[gBoss.gun[i]], bpos, gBoss.dir[i]);
+					}
 					BossFire(i, bpos, gBoss.dir[i]);
 					break;
 				default:
 					break;
 				}
 			}
+		}
+		/* Mob */
+		for(i=0; i<MAX_USEMOB; i++){
+			if(gMob[i].state == LIVING)
+				switch(gMob[i].command[nowcommand % gMob[i].commandnum]){
+				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: //8方位移動
+					break;
+				case C_SCOPE: //照準
+					gMob[i].startdir = (gMob[i].dir % 360);
+					gMob[i].goaldir = DecideDir(i, gMob[i].pos);
+					break;
+				case C_FIRE: //発射
+//					if(gMob[i].id == BOSS)
+//						BossFire()
+					Fire(i);
+					break;
+				default:
+					break;
+				}
+
 		}
 	}
 	/* カウント中 */
@@ -421,32 +468,6 @@ void UseCommand()
 }
 
 /*****************************************************************
-関数名 : BossDecideGoal
-機能	: キャラクターが移動する際の目的地の座標を求める
-引数	: pos : 移動前の座標  command : 移動コマンド(8方位)  dir:角度  speed : 速さ
-出力	: 目的地の座標
-*****************************************************************/
-Pos BossDecideGoal(Pos pos, int w, int h, int command, int speed)
-{
-	Pos goalpos = pos;
-	switch(command){
-	case MOVE_UP:	//上昇
-		goalpos.y -= speed;
-		if(goalpos.y < 0)
-			goalpos.y = 0;
-		break;
-	case MOVE_DOWN:	//下降
-		goalpos.y += speed;
-		if(goalpos.y + h > HEIGHT)
-			goalpos.y = HEIGHT - h;
-		break;
-	default:
-		break;
-	}
-	return goalpos;
-}
-
-/*****************************************************************
 関数名 : DecideDir
 機能	: 変更後の角度の決定
 引数	: ct : 角度を変更するキャラクターの番号  pos : 角度を変更するキャラクターの座標
@@ -472,7 +493,7 @@ int DecideDir(int ct, Pos pos)
 					minid = i;
 			}
 		}
-		else{
+		else{ //VS
 			for(i=0; i<CT_NUM; i++){
 				d[i] = DecideDistance(pos, gChara[i].pos);
 				d[minid] = DecideDistance(pos, gChara[minid].pos);
@@ -634,6 +655,42 @@ void BossMakeShot(int gun, Pos pos, int dir)
 }
 
 /*****************************************************************
+関数名 : BossMob
+機能	: サポートキャラ(Mob)の作成
+引数	: gun : ボスの武器配列の添字(0〜MAX_BOSSGUN)　dir : 角度
+出力	: なし
+*****************************************************************/
+void MakeMob(int ct, GunInfo gun, Pos pos, int dir){
+	int i, j, num = 0;
+	for(i=0; i<MAX_USEMOB; i++){
+		if(gMob[i].state == LIVING && gMob[i].id == ct){
+			num++;
+			printf("%d\n", num);
+		}
+		else if(gMob[i].state == DEAD && num < gun.speed){
+			gMob[i].state		= LIVING;
+			gMob[i].no			= gun.atk;
+			gMob[i].id			= ct;
+			gMob[i].w			= mData[gMob[i].no].w;
+			gMob[i].h			= mData[gMob[i].no].h;
+			gMob[i].pos.x		= pos.x - gMob[i].w / 2;
+			gMob[i].pos.y		= pos.y - gMob[i].h / 2;
+			gMob[i].dir			= gMob[i].startdir = gMob[i].goaldir = dir;
+			gMob[i].hp			= gMob[i].maxhp = mData[gMob[i].no].hp;
+			gMob[i].atk			= gGun[mData[gMob[i].no].gun].atk;
+			gMob[i].speed		= gGun[mData[gMob[i].no].gun].speed;
+			gMob[i].anipat		= 0;
+			gMob[i].anipatnum	= mData[gMob[i].no].anipat;
+			for(j=0; j<MAX_COMMAND; j++){
+				gMob[i].command[j] = (int)(mData[gMob[i].no].command/pow(10, (MAX_COMMAND-j-1))) % 10;
+			}
+				gMob[i].commandnum = MAX_COMMAND;
+			break;
+		}
+	}
+}
+
+/*****************************************************************
 関数名 : MoveChara
 機能	: キャラクターの移動
 引数	: ct : キャラの番号 pos : 移動前の座標  dir : 移動方向  speed : 速さ
@@ -681,7 +738,7 @@ Pos MoveBoss(Pos pos, int command){
 			newpos.y = pos.y;
 		/* キャラクターと衝突時 */
 		for(i=0; i<CT_NUM; i++){
-			if(newpos.y <= gChara[i].pos.y + S_SIZE){
+			if(newpos.y <= gChara[i].pos.y + S_SIZE && newpos.x <= gChara[i].pos.x + S_SIZE && newpos.x + gBoss.pos.x >= gChara[i].pos.x){
 				if(gChara[i].pos.y >= 1)
 					gChara[i].pos.y--;
 				else newpos.y = pos.y;
@@ -693,7 +750,7 @@ Pos MoveBoss(Pos pos, int command){
 		if(newpos.y + gBoss.h > HEIGHT)
 			newpos.y = pos.y;
 		for(i=0; i<CT_NUM; i++){
-			if(newpos.y + gBoss.h >= gChara[i].pos.y){
+			if(newpos.y + gBoss.h >= gChara[i].pos.y && newpos.x <= gChara[i].pos.x + S_SIZE && newpos.x + gBoss.pos.x >= gChara[i].pos.x){
 				if(gChara[i].pos.y  <= HEIGHT -1)
 					gChara[i].pos.y++;
 				else newpos.y = pos.y;
@@ -788,7 +845,7 @@ void MoveShot()
 							}
 							gBoss.hp -= gChara[gShot[i].id].atk;
 							if(gBoss.hp <= 0 ){
-								if(gBoss.next == -1){
+								if(gBoss.next == DELETE){
 									gBoss.state = DEAD;
 									win = 1;
 									mState = MAIN_RESULT;
