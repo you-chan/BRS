@@ -87,15 +87,16 @@ enum{
 	GUN_MILK		= 3, /* ミルクの科学 */
 	GUN_1LASER		= 4, /* レーザー */
 
-	GUN_5SHOT		= 5, /* 5ショット */
-	GUN_3LASER		= 6, /* 3レーザー */
-	GUN_NUCLEAR		= 7,
-	GUN_HOMO0		= 8,
-	GUN_HOMO1		= 9,
+	GUN_MSHOT	= 5,
+	GUN_5SHOT		= 6, /* 5ショット */
+	GUN_3LASER		= 7, /* 3レーザー */
+	GUN_NUCLEAR		= 8,
+	GUN_HOMO0		= 9,
+	GUN_HOMO1		= 10,
 
+	MAX_GUN			= 11, /* ボス用の武器も含めた武器の数 */
 	MAX_PLAYERGUN	= 5, /* プレイヤーが使用可能な武器の数 */
 	MAX_BOSSGUN		= 3, /* ボスが一度に使用可能な武器の数 */
-	MAX_GUN			= 10, /* ボス用の武器も含めた武器の数 */
 
 	ARMOR_LIGHT		= 0, /* 軽 */
 	ARMOR_MIDDLE	= 1, /* 中 */
@@ -259,6 +260,7 @@ typedef struct{
 	Pos pos;
 	Pos startpos;
 	int dir;
+	int atk;
 	int speed;
 	int size;
 	int color;
