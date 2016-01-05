@@ -28,7 +28,7 @@
 #define MAX_COMMAND 6			/* コマンドの最大格納数 */
 #define MAX_BOSSCOMMAND 8		/* ボス用コマンドの最大格納数 */
 #define MAX_SHOT 300
-#define MAX_USEMOB 100			/* 使用可能なMobの数 */
+#define MAX_USEMOB 35			/* 使用可能なMobの数 */
 #define MAX_COUNT 20			/* 最大カウント、減らすほど速度up */
 
 /* ゲームの状態 */
@@ -170,6 +170,7 @@ typedef struct{
 
 /* Mobの情報 */
 typedef struct{
+	int type;		/* 小型ロボ or ミサイル */
     int command; 	/* 発射コマンド, 6桁 */
 	int gun;			/* 装備中の武器 */
 	int hp;							/* 最大HP */
@@ -182,6 +183,7 @@ typedef struct{
 typedef struct{
 	int no;							/* 個体 */
 	int id;							/* 所有者 */
+	//int type;
     Pos pos;						/* 発射座標 */
 	CharaState state;
     int dir;						/* キャラクターの角度 */
