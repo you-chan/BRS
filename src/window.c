@@ -20,6 +20,7 @@ static char MobImgFile[MAX_MOB][16] =	{"img/mob00.png", "img/mob01.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
+static char BombImgFile[] = "img/bomb.png";
 static char ChooseImgFile[] = "img/choose.png";
 static char CommandImgFile[]    = "img/command01.png";
 static char miniCommandImgFile[]    = "img/command02.png";
@@ -36,6 +37,7 @@ static SDL_Surface *MobWindow[MAX_MOB];
 static SDL_Surface *GunWindow;
 static SDL_Surface *ArmorWindow;
 static SDL_Surface *ArrowWindow;
+static SDL_Surface *BombWindow;
 static SDL_Surface *ChooseWindow;
 static SDL_Surface *CommandWindow;
 static SDL_Surface *miniCommandWindow;
@@ -134,6 +136,12 @@ int InitWindow()
     		printf("failed to open armor image.");
     	    return -1;
     	}
+
+    BombWindow = IMG_Load(BombImgFile);
+        if(BombWindow == NULL){
+        	printf("failed to bomb armor image.");
+        	return -1;
+        }
 
     ArrowWindow = IMG_Load(ArrowImgFile);
         if(ArrowWindow == NULL){

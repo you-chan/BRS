@@ -23,14 +23,15 @@
 
 #define S_SIZE  50	 /* 船(仮)の大きさ */
 #define C_SIZE  100 /* コマンドアイコンの大きさ */
-#define BOSS	-1
 #define MAX_CT 4				/* キャラクターの最大数 */
 #define MAX_COMMAND 6			/* コマンドの最大格納数 */
 #define MAX_BOSSCOMMAND 8		/* ボス用コマンドの最大格納数 */
 #define MAX_SHOT 300
-#define MAX_USEMOB 35			/* 使用可能なMobの数 */
+#define MAX_USEMOB 50			/* 使用可能なMobの数 */
 #define MAX_COUNT 20			/* 最大カウント、減らすほど速度up */
 
+#define PLAYER 0
+#define BOSS	4
 /* ゲームの状態 */
 typedef enum{
     GAME_TITLE,	/* タイトル */
@@ -196,6 +197,7 @@ typedef struct{
 	int hp;							/* 現在HP */
 	int atk;
 	int speed;
+	int delay;
 	int w;
 	int h;
 	int anipat;						/* アニメのパターン */
