@@ -191,7 +191,7 @@ typedef struct{
     int startdir;					/* 変更開始時の角度 */
     int goaldir;					/* 変更後の角度 */
     int command[MAX_COMMAND];
-    int commandnum;
+    int cnum;
 	int gun;						/* 装備中の武器 */
 	int maxhp;						/* 最大HP */
 	int hp;							/* 現在HP */
@@ -207,12 +207,14 @@ typedef struct{
 /* キャラクターの情報 */
 typedef struct{
     Pos pos;					/* 座標 */
+    Pos dpos;
 	CharaState state;
     int dir;					/* キャラクターの角度 */
     int startdir;				/* 変更開始時の角度 */
     int goaldir;				/* 変更後の角度 */
-    int command[MAX_COMMAND]; 	/* コマンドの格納 */
-    int commandnum;				/* コマンドの数 */
+    int command[2][MAX_COMMAND]; 	/* コマンドの格納 */
+    int cnum[2];				/* コマンドの使用数(3〜6) */
+    int ctype;			/* コマンドの種類(0か1) */
 	int gun;					/* 装備中の武器 */
 	int armor;					/* 装備中の防具 */
 	int maxhp;					/* 最大HP */
@@ -238,6 +240,7 @@ typedef struct{
 typedef struct{
 	int no;											/* 個体 */
     Pos pos;										/* 座標 */
+    Pos dpos;
     Pos shotpos[MAX_BOSSGUN];						/* 発射座標 */
     int dir[MAX_BOSSGUN];							/* キャラクターの角度 */
     int startdir[MAX_BOSSGUN];						/* 変更開始時の角度 */

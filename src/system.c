@@ -13,7 +13,7 @@ static Pos MoveMob(int ct, Pos pos, int w, int h, int dir, int speed);
 static Pos MoveBoss(Pos pos, int command);
 static int MoveDir(int startdir, int goaldir);
 static void MoveShot();
-static void Destroy(int ct, Pos pos);
+static void Destroy(int ct);
 
 int restplayer; /* 残り人数 */
 
@@ -299,9 +299,11 @@ void InitMain()
 		gChara[i].hp	= gChara[i].maxhp;
 		gChara[i].atk	= gGun[gChara[i].gun].atk;
 		gChara[i].speed = gArmor[gChara[i].armor].speed;
-		gChara[i].commandnum = 0;
+		gChara[i].cnum[0] = gChara[i].cnum[1] = 0;
+		gChara[i].ctype = 0;
 		for(j=0; j<MAX_COMMAND; j++){
-			gChara[i].command[j] = -1;
+			gChara[i].command[0][j] = -1;
+			gChara[i].command[1][j] = -1;
 		}
 		for(j=0; j<MAX_USEMOB; j++){
 			gMob[j].id = -1;
@@ -323,7 +325,6 @@ void InitMain()
 		gShot[i].color	= 0x00000000;
 		gShot[i].state	= DEAD;
 	}
-	gChara[0].gun = GUN_HOMO0;
 }
 
 /*****************************************************************
@@ -369,7 +370,7 @@ void UseCommand()
 {
 	/* カウントを設け、カウントが増えるに伴い各座標も移動する */
 	int i;
-	Pos spos, dpos; //spos:発射座標, dpos:消滅座標
+	Pos spos; //spos:発射座標
 
 	MoveShot();
 
@@ -384,7 +385,7 @@ void UseCommand()
 			if(gChara[i].state == LIVING){
 				spos.x = gChara[i].pos.x + S_SIZE / 2;
 				spos.y = gChara[i].pos.y + S_SIZE / 2;
-				switch(gChara[i].command[nowcommand % gChara[i].commandnum]){
+				switch(gChara[i].command[gChara[i].ctype][nowcommand % gChara[i].cnum[gChara[i].ctype]]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: //8方位移動
 					break;
 				case C_SCOPE: //照準
@@ -407,7 +408,7 @@ void UseCommand()
 			if(gMob[i].state == LIVING){
 				spos.x = gMob[i].pos.x + gMob[i].w / 2;
 				spos.y = gMob[i].pos.y + gMob[i].h / 2;
-				switch(gMob[i].command[(nowcommand + gMob[i].delay) % gMob[i].commandnum]){
+				switch(gMob[i].command[(nowcommand + gMob[i].delay) % gMob[i].cnum]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: //8方位移動
 					break;
 				case C_SCOPE: //照準
@@ -453,9 +454,10 @@ void UseCommand()
 			if(gChara[i].state == LIVING){
 				spos.x = gChara[i].pos.x + S_SIZE / 2;
 				spos.y = gChara[i].pos.y + S_SIZE / 2;
-				switch(gChara[i].command[nowcommand % gChara[i].commandnum]){
+				switch(gChara[i].command[gChara[i].ctype][nowcommand % gChara[i].cnum[gChara[i].ctype]]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
-					gChara[i].pos = MoveChara(i, gChara[i].pos, (gChara[i].dir + gChara[i].command[nowcommand % gChara[i].commandnum] * 45) % 360, gChara[i].speed);
+					gChara[i].pos = MoveChara(i, gChara[i].pos, (gChara[i].dir + gChara[i].command[gChara[i].ctype][nowcommand % gChara[i].cnum[gChara[i].ctype]] * 45) % 360,
+												gChara[i].speed);
 					break;
 				case C_SCOPE: //照準
 					if(count <= MAX_COUNT / 2) //2倍の速さで振り向く
@@ -475,9 +477,9 @@ void UseCommand()
 			if(gMob[i].state == LIVING){
 				spos.x = gMob[i].pos.x + gMob[i].w / 2;
 				spos.y = gMob[i].pos.y + gMob[i].h / 2;
-				switch(gMob[i].command[(nowcommand + gMob[i].delay) % gMob[i].commandnum]){
+				switch(gMob[i].command[(nowcommand + gMob[i].delay) % gMob[i].cnum]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: //8方位移動
-					gMob[i].pos = MoveMob(gMob[i].id, gMob[i].pos, gMob[i].w, gMob[i].h, (gMob[i].dir + gMob[i].command[nowcommand % gMob[i].commandnum] * 45) % 360, gMob[i].speed);
+					gMob[i].pos = MoveMob(gMob[i].id, gMob[i].pos, gMob[i].w, gMob[i].h, (gMob[i].dir + gMob[i].command[nowcommand % gMob[i].cnum] * 45) % 360, gMob[i].speed);
 					break;
 				case C_SCOPE: //照準
 					if(count <= MAX_COUNT / 2) //2倍の速さで振り向く
@@ -528,9 +530,9 @@ void UseCommand()
 			if(gChara[i].hp > 0){
 				gChara[i].hp--;
 				if(gChara[i].hp == 0){
-					dpos.x = gChara[i].pos.x + S_SIZE / 2;
-					dpos.y = gChara[i].pos.y + S_SIZE / 2;
-					Destroy(i, dpos);
+					gChara[i].dpos.x = gChara[i].pos.x + S_SIZE / 2;
+					gChara[i].dpos.y = gChara[i].pos.y + S_SIZE / 2;
+					Destroy(i);
 				}
 			}
 		}
@@ -721,7 +723,7 @@ void MakeMob(int ct, GunInfo gun, Pos pos, int dir, int delay){
 			for(j=0; j<MAX_COMMAND; j++){
 				gMob[i].command[j] = (int)(mData[gMob[i].no].command/pow(10, (MAX_COMMAND-j-1))) % 10;
 			}
-			gMob[i].commandnum = MAX_COMMAND;
+			gMob[i].cnum = MAX_COMMAND;
 			break;
 		}
 	}
@@ -805,7 +807,7 @@ Pos MoveMob(int ct, Pos pos, int w, int h, int dir, int speed)
 出力	: なし
 *****************************************************************/
 Pos MoveBoss(Pos pos, int command){
-	int i;
+//	int i;
 	Pos newpos = pos;
 	switch(command){
 	case MOVE_UP: //上昇
@@ -813,25 +815,25 @@ Pos MoveBoss(Pos pos, int command){
 		if(newpos.y < 0)
 			newpos.y = pos.y;
 		/* キャラクターと衝突時 */
-		for(i=0; i<CT_NUM; i++){
-			if(newpos.y < gChara[i].pos.y + S_SIZE && newpos.x < gChara[i].pos.x + S_SIZE && newpos.x + gBoss.pos.x > gChara[i].pos.x){
-				if(gChara[i].pos.y > 0)
-					gChara[i].pos.y--;
-				else newpos.y = pos.y;
-			}
-		}
+//		for(i=0; i<CT_NUM; i++){
+//			if(newpos.y < gChara[i].pos.y + S_SIZE && newpos.x < gChara[i].pos.x + S_SIZE && newpos.x + gBoss.pos.x > gChara[i].pos.x){
+//				if(gChara[i].pos.y > 0)
+//					gChara[i].pos.y--;
+//				else newpos.y = pos.y;
+//			}
+//		}
 		break;
 	case MOVE_DOWN: // 下降
 		newpos.y = pos.y + 1;
 		if(newpos.y + gBoss.h > HEIGHT)
 			newpos.y = pos.y;
-		for(i=0; i<CT_NUM; i++){
-			if(newpos.y + gBoss.h > gChara[i].pos.y && newpos.x < gChara[i].pos.x + S_SIZE && newpos.x + gBoss.pos.x > gChara[i].pos.x){
-				if(gChara[i].pos.y  < HEIGHT)
-					gChara[i].pos.y++;
-				else newpos.y = pos.y;
-			}
-		}
+//		for(i=0; i<CT_NUM; i++){
+//			if(newpos.y + gBoss.h > gChara[i].pos.y && newpos.x < gChara[i].pos.x + S_SIZE && newpos.x + gBoss.pos.x > gChara[i].pos.x){
+//				if(gChara[i].pos.y  < HEIGHT)
+//					gChara[i].pos.y++;
+//				else newpos.y = pos.y;
+//			}
+//		}
 		break;
 	default:
 		break;
@@ -862,7 +864,7 @@ void MoveShot()
 {
 	int i, j;
 	int lflg; //1ならループ
-	Pos newpos, dpos;
+	Pos newpos;
 	for(i=0; i<MAX_SHOT; i++){
 		if(gShot[i].type == LASER){ //レーザー
 			lflg = 1;
@@ -915,9 +917,9 @@ void MoveShot()
 							}
 							gChara[j].hp -= gShot[i].atk;
 							if(gChara[j].hp <= 0){
-								dpos.x = gChara[j].pos.x + S_SIZE / 2;
-								dpos.y = gChara[j].pos.y + S_SIZE / 2;
-								Destroy(j, dpos);
+								gChara[j].dpos.x = gChara[j].pos.x + S_SIZE / 2;
+								gChara[j].dpos.y = gChara[j].pos.y + S_SIZE / 2;
+								Destroy(j);
 							}
 						}
 					}
@@ -936,9 +938,9 @@ void MoveShot()
 							}
 							gBoss.hp -= gShot[i].atk;
 							if(gBoss.hp <= 0){
-								dpos.x = gBoss.pos.x + gBoss.w / 2;
-								dpos.y = gBoss.pos.y + gBoss.h / 2;
-								Destroy(BOSS, dpos);
+								gBoss.dpos.x = gBoss.pos.x + gBoss.w / 2;
+								gBoss.dpos.y = gBoss.pos.y + gBoss.h / 2;
+								Destroy(BOSS);
 							}
 						}
 					}
@@ -955,9 +957,9 @@ void MoveShot()
 								}
 								gChara[j].hp -= gShot[i].atk;
 								if(gChara[j].hp <= 0){
-									dpos.x = gChara[j].pos.x + S_SIZE / 2;
-									dpos.y = gChara[j].pos.y + S_SIZE / 2;
-									Destroy(j, dpos);
+									gChara[j].dpos.x = gChara[j].pos.x + S_SIZE / 2;
+									gChara[j].dpos.y = gChara[j].pos.y + S_SIZE / 2;
+									Destroy(j);
 								}
 							}
 						}
@@ -974,7 +976,7 @@ void MoveShot()
 引数	: ct : 番号  pos : 消滅キャラの座標(中央位置)
 出力	: 変更後の角度
 *****************************************************************/
-void Destroy(int ct, Pos pos){
+void Destroy(int ct){
 	int i;
 	/* ボスの消滅 */
 	if(ct == BOSS){

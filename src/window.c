@@ -23,7 +23,7 @@ static char ArrowImgFile[] = "img/arrow.png";
 static char BombImgFile[] = "img/bomb.png";
 static char ChooseImgFile[] = "img/choose.png";
 static char CommandImgFile[]    = "img/command01.png";
-static char miniCommandImgFile[]    = "img/command02.png";
+static char MiniCommandImgFile[]    = "img/command02.png";
 static char InfoImgFile[] = "img/info.png";
 
 static SDL_Surface *gMainWindow;
@@ -40,7 +40,7 @@ static SDL_Surface *ArrowWindow;
 static SDL_Surface *BombWindow;
 static SDL_Surface *ChooseWindow;
 static SDL_Surface *CommandWindow;
-static SDL_Surface *miniCommandWindow;
+static SDL_Surface *MiniCommandWindow;
 static SDL_Surface *InfoWindow;
 static SDL_Joystick *joystick; //ジョイスティックを特定・利用するための構造体
 
@@ -53,6 +53,8 @@ typedef struct {
 static void DrawCommand();
 static void DrawShip();
 static void DrawShot();
+static void DrawMainCommand();
+static void DrawBomb(Pos pos);
 static void DrawResult();
 static void WindowEvent(SDLKey key);
 
@@ -161,7 +163,7 @@ int InitWindow()
         return -1;
     }
 
-	miniCommandWindow = IMG_Load(miniCommandImgFile);
+	MiniCommandWindow = IMG_Load(MiniCommandImgFile);
     if(CommandWindow == NULL){
         printf("failed to open minicommand image.");
         return -1;
@@ -296,6 +298,7 @@ void DrawMain()
 		DrawCommand();
 	else if(mState == MAIN_MOVE){ //コマンド適用
 		DrawShot();
+		DrawMainCommand();
 		boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
 	}
 	SDL_Flip(gMainWindow);
@@ -353,14 +356,14 @@ void DrawCommand()
 
 	/* 選択したコマンドの描画 */
 	for(i=0; i<MAX_COMMAND; i++){
-		if(gChara[0].command[i] != -1){
-			rect.src.x = gChara[0].command[i] * C_SIZE;
+		if(gChara[0].command[gChara[0].ctype][i] != -1){
+			rect.src.x = gChara[0].command[gChara[0].ctype][i] * C_SIZE;
 			rect.src.y = 0;
 			rect.src.w = rect.src.h = C_SIZE;
-			if(gChara[0].commandnum <= 4)
+			if(gChara[0].cnum[gChara[0].ctype] <= 4)
 				rect.dst.x = F_WIDTH / 4 + C_SIZE * i;
 			else
-				rect.dst.x = F_WIDTH / 4 + C_SIZE * i * 4 / gChara[0].commandnum;//MAX_COMMAND;
+				rect.dst.x = F_WIDTH / 4 + C_SIZE * i * 4 / gChara[0].cnum[gChara[0].ctype];//MAX_COMMAND;
 			rect.dst.y = HEIGHT / 8;
 			SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
 		}
@@ -493,6 +496,46 @@ void DrawShot()
 			}
 		}
 	}
+}
+
+/*****************************************************************
+関数名 : DrawMainCommand
+機能	: 入力したコマンドを対戦中に表示する
+引数	: なし
+出力	: なし
+*****************************************************************/
+void DrawMainCommand(){
+	int i, j;
+	Rect rect = {{0, 0, 0, 0}, {0, 0}};
+
+	boxColor(gMainWindow, F_WIDTH + 10, 5*HEIGHT/8+gChara[0].ctype*C_SIZE-10, WIDTH-10, 5*HEIGHT/8+gChara[0].ctype*C_SIZE+C_SIZE/2+10, 0xFF0000FF);
+	/* 選択したコマンドの描画 */
+	for(i=0; i<2; i++){
+		for(j=0; j<MAX_COMMAND; j++){
+			if(gChara[0].command[i][j] != -1){
+				rect.src.x = gChara[0].command[i][j] * C_SIZE/2;
+				rect.src.y = 0;
+				rect.src.w = rect.src.h = C_SIZE/2;
+				if(gChara[0].cnum[i] <= 4)
+					rect.dst.x = F_WIDTH + 20 + C_SIZE/2 * j;
+				else
+					rect.dst.x = F_WIDTH + 20 + C_SIZE/2 * j * 4 / gChara[0].cnum[i];//MAX_COMMAND;
+				rect.dst.y = 5 * HEIGHT / 8 + i * C_SIZE;
+				SDL_BlitSurface(MiniCommandWindow, &(rect.src), gMainWindow, &(rect.dst));
+			}
+		}
+	}
+}
+
+
+/*****************************************************************
+関数名 : DrawResult
+機能	: 爆発を表示する
+引数	: pos : 爆破箇所
+出力	: なし
+*****************************************************************/
+void DrawBomb(Pos pos){
+
 }
 
 /*****************************************************************
@@ -637,49 +680,56 @@ void WindowEvent(SDLKey key)
 				break;
 			case SDLK_x:
 				if(cState == COMMAND_RANDOM){	//おまかせ
-					//1899/1000 0->3
 					set = rand() % MAX_SET;
 					for(i=0; i<MAX_COMMAND; i++){
-						gChara[0].command[i] = (int)(commandset[set]/pow(10, MAX_COMMAND-i-1)) % 10;
+						gChara[0].command[gChara[0].ctype][i] = (int)(commandset[set]/pow(10, MAX_COMMAND-i-1)) % 10;
 					}
-					gChara[0].commandnum = MAX_COMMAND;
+					gChara[0].cnum[gChara[0].ctype] = MAX_COMMAND;
 				}
-				else if(cState == COMMAND_DECIDE && gChara[0].commandnum >= 3){	//コマンド入力後の処理
-					mState = MAIN_MOVE;	//動作に移行
-					//COMのコマンド決定
-					for(i=1; i<CT_NUM; i++){
-						set = rand() % MAX_SET;
-						for(j=0; j<MAX_COMMAND; j++){
-							gChara[i].command[j] = (int)(commandset[set]/pow(10, (MAX_COMMAND-j-1))) % 10;
-							//gChara[i].command[j] = (rand() % 2) + 8;
-							gChara[i].commandnum++;
+				else if(cState == COMMAND_DECIDE && gChara[0].cnum[gChara[0].ctype] >= 3){	//コマンド入力後の処理
+					if(gChara[0].ctype == 0){
+						gChara[0].ctype = 1;
+					}
+					else{
+						mState = MAIN_MOVE;	//動作に移行
+						//COMのコマンド決定
+						for(i=1; i<CT_NUM; i++){
+							gChara[0].ctype = 0;
+							set = rand() % MAX_SET;
+							for(j=0; j<MAX_COMMAND; j++){
+								gChara[i].command[gChara[0].ctype][j] = (int)(commandset[set]/pow(10, (MAX_COMMAND-j-1))) % 10;
+								//gChara[i].command[j] = (rand() % 2) + 8;
+								gChara[i].cnum[gChara[0].ctype]++;
+							}
 						}
 					}
 				}
-				else if(gChara[0].command[MAX_COMMAND-1] == -1){
+				else if(gChara[0].command[gChara[0].ctype][MAX_COMMAND-1] == -1){
 					if(cState == COMMAND_DIR){
-						gChara[0].command[gChara[0].commandnum] = gCommand.dir;
-						gChara[0].commandnum++;
+						gChara[0].command[gChara[0].ctype][gChara[0].cnum[gChara[0].ctype]] = gCommand.dir;
+						gChara[0].cnum[gChara[0].ctype]++;
 					}
 					else if(cState == COMMAND_SHOT){
-						gChara[0].command[gChara[0].commandnum] = gCommand.gun;
-						gChara[0].commandnum++;
+						gChara[0].command[gChara[0].ctype][gChara[0].cnum[gChara[0].ctype]] = gCommand.gun;
+						gChara[0].cnum[gChara[0].ctype]++;
 					}
-					if(gChara[0].commandnum == MAX_COMMAND)
+					if(gChara[0].cnum[gChara[0].ctype] == MAX_COMMAND)
 						cState = COMMAND_DECIDE;
 				}
 			break;
 			case SDLK_z:
-				if(gChara[0].commandnum != 0){
-					gChara[0].commandnum--;
-					gChara[0].command[gChara[0].commandnum] = -1;
+				if(gChara[0].cnum[gChara[0].ctype] != 0){
+					gChara[0].cnum[gChara[0].ctype]--;
+					gChara[0].command[gChara[0].ctype][gChara[0].cnum[gChara[0].ctype]] = -1;
 				}
 			break;
 			default:
-				break;
+			break;
 			}
 			break;
 		case MAIN_MOVE:
+			if(key == SDLK_c)
+			gChara[0].ctype = (gChara[0].ctype + 1) % 2;
 			break;
 		case MAIN_RESULT://結果->コマンドへ
 			if(key == SDLK_z)
