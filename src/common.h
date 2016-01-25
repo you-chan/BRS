@@ -29,13 +29,15 @@
 #define MAX_SHOT 300
 #define MAX_USEMOB 50			/* 使用可能なMobの数 */
 #define MAX_COUNT 20			/* 最大カウント、減らすほど速度up */
+#define MAX_DCOUNT 50
 
 #define PLAYER 0
 #define BOSS	4
 /* ゲームの状態 */
 typedef enum{
     GAME_TITLE,	/* タイトル */
-	GAME_EDIT,	/* 編集 */
+	GAME_BOSS,	/* ボス編集 */
+	GAME_COMMAND,	/* コマンド編集 */
     GAME_MAIN,	/* メイン */
 	GAME_END	/* 終了 */
 }GameState;
@@ -142,6 +144,13 @@ enum{
 	MOB		= 2
 };
 
+enum{
+	C_NO	= 0,
+	C_PUSH	= 1,
+	C_WAIT	= 2,
+	C_STOP	= 3
+};
+
 /* 武器の情報 */
 typedef struct{
 	int type;	/* 弾 or レーザー or Mob */
@@ -207,7 +216,6 @@ typedef struct{
 /* キャラクターの情報 */
 typedef struct{
     Pos pos;					/* 座標 */
-    Pos dpos;
 	CharaState state;
     int dir;					/* キャラクターの角度 */
     int startdir;				/* 変更開始時の角度 */
@@ -221,6 +229,7 @@ typedef struct{
 	int hp;						/* 現在HP */
 	int atk;					/* 攻撃力 */
 	int speed;
+	int dcount;					/* 戦闘不能になってからの経過時間 */
 } CharaInfo;
 
 /* ボスの情報 */
@@ -240,7 +249,6 @@ typedef struct{
 typedef struct{
 	int no;											/* 個体 */
     Pos pos;										/* 座標 */
-    Pos dpos;
     Pos shotpos[MAX_BOSSGUN];						/* 発射座標 */
     int dir[MAX_BOSSGUN];							/* キャラクターの角度 */
     int startdir[MAX_BOSSGUN];						/* 変更開始時の角度 */
@@ -258,6 +266,7 @@ typedef struct{
 	int anipat;										/* アニメのパターン */
 	int anipatnum;									/* アニメのパターンの最大数 */
 	int next;										/* 次の形態 */
+	int dcount;
 } BossInfo;
 
 /* 玉の情報 */
@@ -284,6 +293,7 @@ int CT_NUM;		/* 合計人数 */
 int count;		/* 移動処理のためのカウント */
 int nowcommand;	/* 現在適用されているコマンド */
 int win;		/* 勝敗, 1:勝ち, 2:負け */
+int cflg;		/* コマンド変更フラグ */
 GameState gState;
 TitleState tState;
 EditState eState;

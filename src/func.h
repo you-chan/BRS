@@ -11,7 +11,8 @@
 /* window.c */
 extern int  InitWindow();
 extern void DrawTitle();
-extern void DrawEdit();
+extern void DrawBossEdit();
+extern void DrawCommandEdit();
 extern void DrawMain();
 extern void InputKey();
 extern void DestroyWindow();
@@ -23,5 +24,7 @@ extern void InitEdit();
 extern void InitMain();
 extern void InitAdventure();
 extern void UseCommand();
+extern void MoveShot();
+extern void CheckDestroy();
 
 #endif /* BRS_SRC_FUNC_H_ */

@@ -12,8 +12,6 @@ static Pos MoveChara(int ct, Pos pos, int dir, int speed);
 static Pos MoveMob(int ct, Pos pos, int w, int h, int dir, int speed);
 static Pos MoveBoss(Pos pos, int command);
 static int MoveDir(int startdir, int goaldir);
-static void MoveShot();
-static void Destroy(int ct);
 
 int restplayer; /* 残り人数 */
 
@@ -134,9 +132,9 @@ void InitSystem()
 	bData[GAHARA].w					= 300;
 	bData[GAHARA].h					= 300;
 	bData[GAHARA].speed				= 200;
-	bData[GAHARA].gun[0]			= GUN_HOMO1;
-	bData[GAHARA].gun[1]			= GUN_HOMO1;
-	bData[GAHARA].gun[2]			= GUN_HOMO1;
+	bData[GAHARA].gun[0]			= GUN_MILK;
+	bData[GAHARA].gun[1]			= GUN_MILK;
+	bData[GAHARA].gun[2]			= GUN_MILK;
 	bData[GAHARA].shotpos[0].x		= 60;
 	bData[GAHARA].shotpos[0].y		= 75;
 	bData[GAHARA].shotpos[1].x		= 240;
@@ -174,8 +172,8 @@ void InitSystem()
 	bData[SHIBBOLETH].w					= 250;
 	bData[SHIBBOLETH].h					= 300;
 	bData[SHIBBOLETH].speed				= 200;
-	bData[SHIBBOLETH].gun[0]			= GUN_HOMO0;
-	bData[SHIBBOLETH].gun[1]			= -1;
+	bData[SHIBBOLETH].gun[0]			= GUN_3LASER;
+	bData[SHIBBOLETH].gun[1]			= GUN_1LASER;
 	bData[SHIBBOLETH].gun[2]			= -1;
 	bData[SHIBBOLETH].shotpos[0].x		= 47;
 	bData[SHIBBOLETH].shotpos[0].y		= 55;
@@ -183,16 +181,16 @@ void InitSystem()
 	bData[SHIBBOLETH].shotpos[1].y		= 55;
 	bData[SHIBBOLETH].shotpos[2].x		= 47;
 	bData[SHIBBOLETH].shotpos[2].y		= 55;
-	bData[SHIBBOLETH].shotcommand[0]	= 0; //12001200 //武器0
+	bData[SHIBBOLETH].shotcommand[0]	= 12121212; //12001200 //武器0
 	bData[SHIBBOLETH].shotcommand[1]	= 12121212;
 	bData[SHIBBOLETH].shotcommand[2]	= 0;
-	bData[SHIBBOLETH].movecommand		= 10201020;
+	bData[SHIBBOLETH].movecommand		= 12121212;
 	bData[SHIBBOLETH].anipat			= 1;
 	bData[SHIBBOLETH].next				= DELETE;
 
 	bData[HOMO].hp				= 6000;
 	bData[HOMO].w				= 200;
-	bData[HOMO].h				= 244;
+	bData[HOMO].h				= 250;
 	bData[HOMO].speed			= 200;
 	bData[HOMO].gun[0]			= GUN_MILK;
 	bData[HOMO].gun[1]			= GUN_HOMO0;
@@ -220,7 +218,7 @@ void InitSystem()
 void InitTitle()
 {
 	tState = ADVENTURE;
-	gBoss.no = GAHARA;//とりあえず
+	gBoss.no = 0;//とりあえず
 }
 
 /*****************************************************************
@@ -260,6 +258,7 @@ void InitMain()
 	win = 0;
 	gCommand.dir = 0;		 //上方向から選択できるように
 	gCommand.gun = C_SCOPE; //照準から選択できるように
+	cflg = C_NO;
 
 	/* 敵の武器決定(ランダム) */
 	for(i=1; i<CT_NUM; i++){
@@ -301,6 +300,7 @@ void InitMain()
 		gChara[i].speed = gArmor[gChara[i].armor].speed;
 		gChara[i].cnum[0] = gChara[i].cnum[1] = 0;
 		gChara[i].ctype = 0;
+		gChara[i].dcount = 0;
 		for(j=0; j<MAX_COMMAND; j++){
 			gChara[i].command[0][j] = -1;
 			gChara[i].command[1][j] = -1;
@@ -329,7 +329,7 @@ void InitMain()
 
 /*****************************************************************
 関数名 : InitAdventure
-機能	: Adventureでの初期化処理
+機能	: Adventureでの初期化処理というかボスの初期化
 引数	: なし
 出力	: なし
 *****************************************************************/
@@ -346,6 +346,7 @@ void InitAdventure()
 	gBoss.anipat = 0;
 	gBoss.anipatnum = bData[gBoss.no].anipat;
 	gBoss.next 		= bData[gBoss.no].next;
+	gBoss.dcount	= 0;
 	for(i=0; i<MAX_BOSSCOMMAND; i++){
 		gBoss.movecommand[i] = (int)(bData[gBoss.no].movecommand/pow(10, MAX_BOSSCOMMAND-i-1)) % 10;
 	}
@@ -362,7 +363,7 @@ void InitAdventure()
 
 /*****************************************************************
 関数名 : UseCommand
-機能	: コマンドの適用
+機能	: コマンドの適用、カウントの増加処理
 引数	: なし
 出力	: なし
 *****************************************************************/
@@ -372,8 +373,6 @@ void UseCommand()
 	int i;
 	Pos spos; //spos:発射座標
 
-	MoveShot();
-
 	/* 初回 */
 	if(count == 0){
 		for(i=0; i<MAX_SHOT; i++){
@@ -382,7 +381,7 @@ void UseCommand()
 		}
 		/* Player */
 		for(i=0; i<CT_NUM; i++){
-			if(gChara[i].state == LIVING){
+			if(gChara[i].state == LIVING && (i != 0 || cflg != C_WAIT)){ //変更中は動けない
 				spos.x = gChara[i].pos.x + S_SIZE / 2;
 				spos.y = gChara[i].pos.y + S_SIZE / 2;
 				switch(gChara[i].command[gChara[i].ctype][nowcommand % gChara[i].cnum[gChara[i].ctype]]){
@@ -451,7 +450,7 @@ void UseCommand()
 	else if(count <= MAX_COUNT){
 		/* Player */
 		for(i=0; i<CT_NUM; i++){
-			if(gChara[i].state == LIVING){
+			if(gChara[i].state == LIVING && (i != 0 || cflg != C_WAIT)){
 				spos.x = gChara[i].pos.x + S_SIZE / 2;
 				spos.y = gChara[i].pos.y + S_SIZE / 2;
 				switch(gChara[i].command[gChara[i].ctype][nowcommand % gChara[i].cnum[gChara[i].ctype]]){
@@ -523,17 +522,26 @@ void UseCommand()
 		nowcommand++;
 //		if(nowcommand == 60)
 //			nowcommand = 0;
+		switch(cflg){
+		case C_NO:
+		case C_STOP:
+			break;
+		case C_PUSH:
+			cflg = C_WAIT;
+			break;
+		case C_WAIT:
+			cflg = C_STOP;
+			gChara[0].ctype = (gChara[0].ctype + 1) % 2;
+			break;
+		default:
+			break;
+		}
 	}
 
-	if(nowcommand >= 20 && tState == VS_MODE){
+	if(nowcommand >= 40 && tState == VS_MODE){
 		for(i=0; i<CT_NUM; i++){
 			if(gChara[i].hp > 0){
 				gChara[i].hp--;
-				if(gChara[i].hp == 0){
-					gChara[i].dpos.x = gChara[i].pos.x + S_SIZE / 2;
-					gChara[i].dpos.y = gChara[i].pos.y + S_SIZE / 2;
-					Destroy(i);
-				}
 			}
 		}
 	}
@@ -916,11 +924,11 @@ void MoveShot()
 								gShot[i].state = DEAD;
 							}
 							gChara[j].hp -= gShot[i].atk;
-							if(gChara[j].hp <= 0){
-								gChara[j].dpos.x = gChara[j].pos.x + S_SIZE / 2;
-								gChara[j].dpos.y = gChara[j].pos.y + S_SIZE / 2;
-								Destroy(j);
-							}
+//							if(gChara[j].hp <= 0){
+//								gChara[j].dpos.x = gChara[j].pos.x + S_SIZE / 2;
+//								gChara[j].dpos.y = gChara[j].pos.y + S_SIZE / 2;
+//								Destroy(j);
+//							}
 						}
 					}
 				}
@@ -937,11 +945,11 @@ void MoveShot()
 								gShot[i].state = DEAD;
 							}
 							gBoss.hp -= gShot[i].atk;
-							if(gBoss.hp <= 0){
-								gBoss.dpos.x = gBoss.pos.x + gBoss.w / 2;
-								gBoss.dpos.y = gBoss.pos.y + gBoss.h / 2;
-								Destroy(BOSS);
-							}
+//							if(gBoss.hp <= 0){
+//								gBoss.dpos.x = gBoss.pos.x + gBoss.w / 2;
+//								gBoss.dpos.y = gBoss.pos.y + gBoss.h / 2;
+//								Destroy(BOSS);
+//							}
 						}
 					}
 					/* Boss -> Player */
@@ -956,11 +964,11 @@ void MoveShot()
 									gShot[i].state = DEAD;
 								}
 								gChara[j].hp -= gShot[i].atk;
-								if(gChara[j].hp <= 0){
-									gChara[j].dpos.x = gChara[j].pos.x + S_SIZE / 2;
-									gChara[j].dpos.y = gChara[j].pos.y + S_SIZE / 2;
-									Destroy(j);
-								}
+//								if(gChara[j].hp <= 0){
+//									gChara[j].dpos.x = gChara[j].pos.x + S_SIZE / 2;
+//									gChara[j].dpos.y = gChara[j].pos.y + S_SIZE / 2;
+//									Destroy(j);
+//								}
 							}
 						}
 					}
@@ -971,45 +979,67 @@ void MoveShot()
 }
 
 /*****************************************************************
-関数名 : Destroy
-機能	: キャラの消滅処理
+関数名 : CheckDestroy
+機能	: キャラの消滅処理判定
 引数	: ct : 番号  pos : 消滅キャラの座標(中央位置)
 出力	: 変更後の角度
 *****************************************************************/
-void Destroy(int ct){
-	int i;
+void CheckDestroy(){
+	int i, j;
+	/* プレイヤーの消滅 */
+	for(i=0; i<CT_NUM; i++){
+		if(gChara[i].hp <= 0 && gChara[i].state == LIVING){
+			gChara[i].hp = 0;
+			gChara[i].state = DEAD;
+			for(j=0; j<MAX_SHOT; j++){
+				if(gShot[j].id == i && gShot[j].type == LASER)
+					gShot[j].state = DEAD;
+			}
+			/* 召喚中のモブの消去 */
+			for(j=0; j<MAX_USEMOB; j++){
+				if(gMob[j].id == i)
+					gMob[j].state = DEAD;
+			}
+		}
+		else if(gChara[i].state == DEAD){
+			gChara[i].dcount++;
+			if(gChara[i].dcount == MAX_DCOUNT){
+				restplayer--;
+				if(tState == VS_MODE && restplayer == 1){//p->p
+					if(gChara[0].state == LIVING) //0Pが生きてたら勝ち
+						win = 1;
+					else win = 0;
+					mState = MAIN_RESULT;
+				}
+				else if(tState == ADVENTURE && restplayer == 0){//b-p
+					win = 0;
+					mState = MAIN_RESULT; //負け
+				}
+			}
+		}
+	}
 	/* ボスの消滅 */
-	if(ct == BOSS){
+	if(gBoss.hp <= 0 && gBoss.state == LIVING){
 		if(gBoss.next == DELETE){
+			gBoss.hp = 0;
 			gBoss.state = DEAD;
-			win = 1;
-			mState = MAIN_RESULT;
 		}
 		else{ //形態変更
 			gBoss.no = gBoss.next;
 			InitAdventure();
 		}
+		/* 召喚中のモブの消去 */
+		for(j=0; j<MAX_USEMOB; j++){
+			if(gMob[j].id == BOSS)
+				gMob[j].state = DEAD;
+		}
 	}
-	/* プレイヤーの消滅 */
-	else{
-		gChara[ct].state = DEAD;
-		restplayer--;
-		if(tState == VS_MODE && restplayer == 1){//p->p
-			if(gChara[0].state == LIVING) //0Pが生きてたら勝ち
-				win = 1;
-			else win = 0;
+	else if(gBoss.state == DEAD){
+		gBoss.dcount++;
+		if(gBoss.dcount == MAX_DCOUNT){
+			win = 1;
 			mState = MAIN_RESULT;
 		}
-
-		else if(tState == ADVENTURE && restplayer == 0){//b-p
-			win = 0;
-			mState = MAIN_RESULT; //負け
-		}
-	}
-	/* 召喚中のモブの消去 */
-	for(i=0; i<MAX_USEMOB; i++){
-		if(ct == gMob[i].id)
-			gMob[i].state = DEAD;
 	}
 }
 

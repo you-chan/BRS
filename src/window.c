@@ -54,7 +54,7 @@ static void DrawCommand();
 static void DrawShip();
 static void DrawShot();
 static void DrawMainCommand();
-static void DrawBomb(Pos pos);
+extern void DrawBomb();
 static void DrawResult();
 static void WindowEvent(SDLKey key);
 
@@ -230,16 +230,41 @@ void DrawTitle()
 }
 
 /*****************************************************************
-関数名 : DrawEdit
-機能	: 編集画面の描画
+関数名 : DrawBossEdit
+機能	: ボス編集画面の描画
 引数	: なし
 出力	: なし
 *****************************************************************/
-void DrawEdit()
+void DrawBossEdit()
 {
-	Rect rect = {{0, 0, 0, 0}, {0, 0}}; //とりあえず100*100
+	Rect rect = {{0, 0, 0, 0}, {0, 0}};
 
-	/* 背景を白にする */
+	/* 背景を灰色にする */
+	SDL_FillRect(gMainWindow,NULL,0x808080);
+	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
+
+	rect.src.x = 100 * gBoss.no;
+	rect.src.y = 0;
+	rect.src.w = 100;
+	rect.src.h = 100;
+	rect.dst.x = (F_WIDTH - 100)/2;
+	rect.dst.y = (HEIGHT - 100) / 2;
+
+	SDL_BlitSurface(NumWindow, &(rect.src), gMainWindow, &(rect.dst));
+	SDL_Flip(gMainWindow);
+}
+
+/*****************************************************************
+関数名 : DrawCommandEdit
+機能	: コマンド編集画面の描画
+引数	: なし
+出力	: なし
+*****************************************************************/
+void DrawCommandEdit()
+{
+	Rect rect = {{0, 0, 0, 0}, {0, 0}};
+
+	/* 背景を灰色にする */
 	SDL_FillRect(gMainWindow,NULL,0x808080);
 	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
 
@@ -299,7 +324,7 @@ void DrawMain()
 	else if(mState == MAIN_MOVE){ //コマンド適用
 		DrawShot();
 		DrawMainCommand();
-		boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
+		DrawBomb();
 	}
 	SDL_Flip(gMainWindow);
 }
@@ -368,6 +393,23 @@ void DrawCommand()
 			SDL_BlitSurface(CommandWindow, &(rect.src), gMainWindow, &(rect.dst));
 		}
 	}
+
+	if(gChara[0].ctype == 1){
+		/* 選択したコマンドの描画 */
+		for(i=0; i<MAX_COMMAND; i++){
+			if(gChara[0].command[0][i] != -1){
+				rect.src.x = gChara[0].command[0][i] * C_SIZE/2;
+				rect.src.y = 0;
+				rect.src.w = rect.src.h = C_SIZE/2;
+				if(gChara[0].cnum[0] <= 4)
+					rect.dst.x = F_WIDTH + 20 + C_SIZE/2 * i;
+				else
+					rect.dst.x = F_WIDTH + 20 + C_SIZE/2 * i * 4 / gChara[0].cnum[0];//MAX_COMMAND;
+				rect.dst.y = 5 * HEIGHT / 8;
+				SDL_BlitSurface(MiniCommandWindow, &(rect.src), gMainWindow, &(rect.dst));
+			}
+		}
+	}
 }
 
 /*****************************************************************
@@ -429,7 +471,7 @@ void DrawShip()
 		}
 	}
 
-	if(tState == ADVENTURE){
+	if(tState == ADVENTURE && gBoss.state == LIVING){
 		/*ボスの描画*/
 		if(gBoss.anipatnum <= 1)
 			rect.src.x = 0;
@@ -474,9 +516,9 @@ void DrawShot()
 	for(i=0; i<MAX_SHOT; i++){
 		if(gShot[i].state == LIVING){
 			if(gShot[i].type == LASER){
-				spos.x = gBoss.pos.x + gBoss.shotpos[gShot[i].id+MAX_BOSSGUN].x; //発射座標
-				spos.y = gBoss.pos.y + gBoss.shotpos[gShot[i].id+MAX_BOSSGUN].y;
-				if(gShot[i].id >= 0){
+				spos.x = gShot[i].startpos.x; //発射座標
+				spos.y = gShot[i].startpos.y;
+				if(gShot[i].id != BOSS){
 					lineColor(gMainWindow, gChara[gShot[i].id].pos.x+S_SIZE/2, gChara[gShot[i].id].pos.y+S_SIZE/2+1,
 								gShot[i].pos.x, gShot[i].pos.y+1, gShot[i].color);
 				}
@@ -505,10 +547,17 @@ void DrawShot()
 出力	: なし
 *****************************************************************/
 void DrawMainCommand(){
-	int i, j;
+	int i, j, x, color;
 	Rect rect = {{0, 0, 0, 0}, {0, 0}};
-
-	boxColor(gMainWindow, F_WIDTH + 10, 5*HEIGHT/8+gChara[0].ctype*C_SIZE-10, WIDTH-10, 5*HEIGHT/8+gChara[0].ctype*C_SIZE+C_SIZE/2+10, 0xFF0000FF);
+	if(gChara[0].cnum[gChara[0].ctype] <= 4)
+		x = F_WIDTH + 30 + C_SIZE/2 * gChara[0].cnum[gChara[0].ctype];
+	else
+		x = F_WIDTH + 30 + C_SIZE/2 * (gChara[0].cnum[gChara[0].ctype] - 1) * 4 / gChara[0].cnum[gChara[0].ctype] + C_SIZE/2;
+	if(cflg == C_STOP)
+		color = 0xFF0000FF;//赤
+	else
+		color = 0x00FF00FF;//緑
+	boxColor(gMainWindow, F_WIDTH+10, 5*HEIGHT/8+gChara[0].ctype*C_SIZE-10, x, 5*HEIGHT/8+gChara[0].ctype*C_SIZE+C_SIZE/2+10, color);
 	/* 選択したコマンドの描画 */
 	for(i=0; i<2; i++){
 		for(j=0; j<MAX_COMMAND; j++){
@@ -519,7 +568,7 @@ void DrawMainCommand(){
 				if(gChara[0].cnum[i] <= 4)
 					rect.dst.x = F_WIDTH + 20 + C_SIZE/2 * j;
 				else
-					rect.dst.x = F_WIDTH + 20 + C_SIZE/2 * j * 4 / gChara[0].cnum[i];//MAX_COMMAND;
+					rect.dst.x = F_WIDTH + 20 + C_SIZE/2 * j * 4 / gChara[0].cnum[i];
 				rect.dst.y = 5 * HEIGHT / 8 + i * C_SIZE;
 				SDL_BlitSurface(MiniCommandWindow, &(rect.src), gMainWindow, &(rect.dst));
 			}
@@ -534,8 +583,29 @@ void DrawMainCommand(){
 引数	: pos : 爆破箇所
 出力	: なし
 *****************************************************************/
-void DrawBomb(Pos pos){
-
+void DrawBomb(){
+	int i;
+	Rect rect = {{0, 0, 0, 0}, {0, 0}};
+	for(i=0; i<CT_NUM; i++){
+		if(gChara[i].dcount < MAX_DCOUNT && gChara[i].state == DEAD){
+			rect.src.x = (gChara[i].dcount/ 2 % 8) * 300;
+			rect.src.y = 0;
+			rect.src.w = 300;
+			rect.src.h = 300;
+			rect.dst.x = gChara[i].pos.x + S_SIZE / 2 - rect.src.w / 2;
+			rect.dst.y = gChara[i].pos.y + S_SIZE / 2 - rect.src.h / 2;
+			SDL_BlitSurface(BossWindow[1], &(rect.src), gMainWindow, &(rect.dst));
+		}
+	}
+	if(gBoss.dcount < MAX_DCOUNT && gBoss.state == DEAD){
+		rect.src.x = 0;
+		rect.src.y = 0;
+		rect.src.w = 200;
+		rect.src.h = 200;
+		rect.dst.x = gBoss.pos.x + gBoss.w / 2 - rect.src.w / 2;
+		rect.dst.y = gBoss.pos.y + gBoss.h / 2 - rect.src.h / 2;
+		SDL_BlitSurface(BombWindow, &(rect.src), gMainWindow, &(rect.dst));
+	}
 }
 
 /*****************************************************************
@@ -611,18 +681,35 @@ void WindowEvent(SDLKey key)
 	switch(gState){
 	case GAME_TITLE:
 		if(key == SDLK_x){ //タイトル->エディットへ
-			if(tState == TITLE_QUIT)
-				gState = GAME_END;
+			if(tState == ADVENTURE)
+				gState = GAME_BOSS;
+			else if(tState == VS_MODE)
+				gState = GAME_COMMAND;
 			else
-				gState = GAME_EDIT;
+				gState = GAME_END;
 		}
 		if(key == SDLK_UP)
 			tState = (tState + MAX_TITLE - 1) % MAX_TITLE;
 		if(key == SDLK_DOWN)
 			tState = (tState + 1) % MAX_TITLE;
 		break;
-	case GAME_EDIT:
-		/* 編集 */
+	case GAME_BOSS:
+		switch(key){
+		case SDLK_x:
+			gState = GAME_COMMAND;
+			break;
+		case SDLK_UP: //コマンドの選択
+			gBoss.no = (gBoss.no + 1) % MAX_BOSS;
+			break;
+		case SDLK_DOWN:
+			gBoss.no = (gBoss.no + MAX_BOSS - 1) % MAX_BOSS;
+			break;
+		default:
+			break;
+		}
+		break;
+	case GAME_COMMAND:
+		/* コマンド編集 */
 		switch(key){
 		case SDLK_z:
 			gState = GAME_TITLE;
@@ -697,9 +784,11 @@ void WindowEvent(SDLKey key)
 							gChara[0].ctype = 0;
 							set = rand() % MAX_SET;
 							for(j=0; j<MAX_COMMAND; j++){
-								gChara[i].command[gChara[0].ctype][j] = (int)(commandset[set]/pow(10, (MAX_COMMAND-j-1))) % 10;
+								gChara[i].command[0][j] = (int)(commandset[set]/pow(10, (MAX_COMMAND-j-1))) % 10;
+								gChara[i].command[1][j] = (int)(commandset[set]/pow(10, (MAX_COMMAND-j-1))) % 10;
 								//gChara[i].command[j] = (rand() % 2) + 8;
-								gChara[i].cnum[gChara[0].ctype]++;
+								gChara[i].cnum[0]++;
+								gChara[i].cnum[1]++;
 							}
 						}
 					}
@@ -728,11 +817,12 @@ void WindowEvent(SDLKey key)
 			}
 			break;
 		case MAIN_MOVE:
-			if(key == SDLK_c)
-			gChara[0].ctype = (gChara[0].ctype + 1) % 2;
+			if(key == SDLK_c && cflg == C_NO){
+				cflg = C_PUSH;
+			}
 			break;
 		case MAIN_RESULT://結果->コマンドへ
-			if(key == SDLK_z)
+			if(key == SDLK_x)
 				gState = GAME_TITLE;
 			break;
 		}

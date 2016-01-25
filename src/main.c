@@ -27,7 +27,8 @@ int main(int argc,char *argv[])
 		case GAME_TITLE:
 			GameTitle();
 			break;
-		case GAME_EDIT:
+		case GAME_BOSS:
+		case GAME_COMMAND:
 			GameEdit();
 			break;
 		case GAME_MAIN:
@@ -67,9 +68,13 @@ int GameTitle()
 int GameEdit()
 {
 	InitEdit();
-    while(gState == GAME_EDIT){
+    while(gState == GAME_BOSS){
         InputKey();
-        DrawEdit();
+        DrawBossEdit();
+    }
+    while(gState == GAME_COMMAND){
+        InputKey();
+        DrawCommandEdit();
     }
     return gState;
 }
@@ -112,10 +117,12 @@ int GameMain()
 *****************************************************************/
 void TimerEvent(int time){
 	/* time%5->0.2秒毎, time%25->1秒毎くらい */
+	DrawMain();
 	if(mState == MAIN_MOVE){
+		MoveShot();
+		CheckDestroy();
 		UseCommand();
 	}
-	DrawMain();
 }
 
 /* end of main.c */
