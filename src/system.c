@@ -9,7 +9,7 @@ static void Fire(int ct, int gun, Pos pos, int dir);
 static void MakeShot(int ct, int gun, Pos pos, int dir);
 static void MakeMob(int ct, GunInfo gun, Pos pos, int dir, int delay);
 static Pos MoveChara(int ct, Pos pos, int dir, int speed);
-static Pos MoveMob(int ct, Pos pos, int w, int h, int dir, int speed);
+static Pos MoveMob(int ct, int type, int id, Pos pos, int w, int h, int dir, int speed);
 static Pos MoveBoss(Pos pos, int command);
 static int MoveDir(int startdir, int goaldir);
 
@@ -25,8 +25,27 @@ void InitSystem()
 {
     /* 乱数初期化 */
     srand(time(NULL));
-
 	gState = GAME_TITLE;
+
+	int i;
+	for(i=0; i<MAX_GUN; i++){
+		gGun[i].atk		= -1;
+		gGun[i].speed	= -1;
+		gGun[i].size	= -1;
+		gGun[i].color	= -1;
+		gGun[i].type	= -1;
+		gGun[i].mobno	= -1;
+		gGun[i].mobnum	= -1;
+	}
+
+	gArmor[ARMOR_LIGHT].hp		= 300;
+	gArmor[ARMOR_LIGHT].speed	= 10;
+	gArmor[ARMOR_MIDDLE].hp		= 450;
+	gArmor[ARMOR_MIDDLE].speed	= 5;
+	gArmor[ARMOR_HEAVY].hp		= 800;
+	gArmor[ARMOR_HEAVY].speed	= 3;
+	gArmor[ARMOR_MISSILE].hp	= 600;
+	gArmor[ARMOR_MISSILE].speed	= 4;
 
 	gGun[GUN_1SHOT].type	= SHOT;
 	gGun[GUN_1SHOT].atk		= 100;
@@ -75,38 +94,55 @@ void InitSystem()
 	gGun[GUN_MILK].color	= 0xFFFFFFFF;
 
 	gGun[GUN_HOMO0].type	= MOB;
-	gGun[GUN_HOMO0].atk		= HOMO0;
-	gGun[GUN_HOMO0].speed	= 10; //最大数
-	gGun[GUN_HOMO0].size	= 10;
-	gGun[GUN_HOMO0].color	= 0x000000FF;
+	gGun[GUN_HOMO0].mobno	= HOMO0;
+	gGun[GUN_HOMO0].mobnum	= 3; //最大数
 	gGun[GUN_HOMO1].type	= MOB;
-	gGun[GUN_HOMO1].atk		= HOMO1;
-	gGun[GUN_HOMO1].speed	= 3;
-	gGun[GUN_HOMO1].size	= 10;
-	gGun[GUN_HOMO1].color	= 0x000000FF;
+	gGun[GUN_HOMO1].mobno	= HOMO1;
+	gGun[GUN_HOMO1].mobnum	= 3;
+	gGun[GUN_MISSILE].type	= MOB;
+	gGun[GUN_MISSILE].mobno	= MISSILE;
+	gGun[GUN_MISSILE].mobnum= 8;
+	gGun[GUN_FIRE].type	= MOB;
+	gGun[GUN_FIRE].mobno	= FIRE;
+	gGun[GUN_FIRE].mobnum= 8;
 
-	gArmor[ARMOR_LIGHT].hp		= 300;
-	gArmor[ARMOR_LIGHT].speed	= 10;
-	gArmor[ARMOR_MIDDLE].hp		= 450;
-	gArmor[ARMOR_MIDDLE].speed	= 5;
-	gArmor[ARMOR_HEAVY].hp		= 800;
-	gArmor[ARMOR_HEAVY].speed	= 3;
-
+	mData[HOMO0].type		= M_CHARA;
+	mData[HOMO0].gun		= GUN_MSHOT;
 	mData[HOMO0].hp			= 100;
+	mData[HOMO0].atk		= gGun[mData[HOMO0].gun].atk;
 	mData[HOMO0].w			= 75;
 	mData[HOMO0].h			= 100;
-	mData[HOMO0].speed		= 50;
-	mData[HOMO0].gun		= GUN_MSHOT;
+	mData[HOMO0].speed		= 10;
 	mData[HOMO0].command	= 809809;
 	mData[HOMO0].anipat		= 1;
 
+	mData[HOMO1].type		= M_CHARA;
+	mData[HOMO1].gun		= GUN_MSHOT;
 	mData[HOMO1].hp			= 100;
+	mData[HOMO1].atk		= gGun[mData[HOMO1].gun].atk;
 	mData[HOMO1].w			= 100;
 	mData[HOMO1].h			= 100;
-	mData[HOMO1].speed		= 50;
-	mData[HOMO1].gun		= GUN_MSHOT;
+	mData[HOMO1].speed		= 10;
 	mData[HOMO1].command	= 898989;
 	mData[HOMO1].anipat		= 1;
+
+	mData[MISSILE].type		= M_SHOT;
+	mData[MISSILE].hp		= 300;
+	mData[MISSILE].atk		= 100;
+	mData[MISSILE].w		= 100;
+	mData[MISSILE].h		= 100;
+	mData[MISSILE].speed	= 15;
+	mData[MISSILE].command	= 0;
+	mData[MISSILE].anipat	= 1;
+
+	mData[FIRE].type	= M_SHOT;
+	mData[FIRE].hp		= 300;
+	mData[FIRE].atk		= 100;
+	mData[FIRE].w		= 200;
+	mData[FIRE].h		= 200;
+	mData[FIRE].speed	= 20;
+	mData[FIRE].command	= 0;
+	mData[FIRE].anipat	= 1;
 
 	bData[SENKOUSHA].hp				= 2000;
 	bData[SENKOUSHA].w				= 200;
@@ -152,8 +188,8 @@ void InitSystem()
 	bData[SUDACHI].w				= 300;
 	bData[SUDACHI].h				= 300;
 	bData[SUDACHI].speed			= 200;
-	bData[SUDACHI].gun[0]			= GUN_3LASER;
-	bData[SUDACHI].gun[1]			= GUN_3LASER;
+	bData[SUDACHI].gun[0]			= GUN_FIRE;
+	bData[SUDACHI].gun[1]			= GUN_FIRE;
 	bData[SUDACHI].gun[2]			= GUN_MILK;
 	bData[SUDACHI].shotpos[0].x		= 148;
 	bData[SUDACHI].shotpos[0].y		= 250;
@@ -161,7 +197,7 @@ void InitSystem()
 	bData[SUDACHI].shotpos[1].y		= 250;
 	bData[SUDACHI].shotpos[2].x		= 148;
 	bData[SUDACHI].shotpos[2].y		= 250;
-	bData[SUDACHI].shotcommand[0]	= 00120012; //12001200 //武器0
+	bData[SUDACHI].shotcommand[0]	=   120012; //12001200 //武器0
 	bData[SUDACHI].shotcommand[1]	= 12001200;
 	bData[SUDACHI].shotcommand[2]	= 22222222;
 	bData[SUDACHI].movecommand		= 12121212;
@@ -194,7 +230,7 @@ void InitSystem()
 	bData[HOMO].speed			= 200;
 	bData[HOMO].gun[0]			= GUN_MILK;
 	bData[HOMO].gun[1]			= GUN_HOMO0;
-	bData[HOMO].gun[2]			= GUN_HOMO1;
+	bData[HOMO].gun[2]			= GUN_HOMO0;
 	bData[HOMO].shotpos[0].x	= 60;
 	bData[HOMO].shotpos[0].y	= 75;
 	bData[HOMO].shotpos[1].x	= 240;
@@ -230,21 +266,19 @@ void InitTitle()
 void InitEdit()
 {
 	eState = EDIT_GUN;
-	gChara[0].gun = GUN_1SHOT;
-	gChara[0].armor = ARMOR_MIDDLE;
+	gChara[0].gun	= GUN_1SHOT;
+	gChara[0].armor	= ARMOR_MIDDLE;
 }
 
 /*****************************************************************
 関数名 : InitMain
-機能	: メインでの初期化処理
+機能	: 対戦前の初期化処理
 引数	: なし
 出力	: なし
 *****************************************************************/
 void InitMain()
 {
-	int i, j, n;
-	int posflg;
-	Pos cpos;
+	int i, j;
 
 	if(tState == VS_MODE) //人数設定、通信時要変更
 		CT_NUM = MAX_CT;
@@ -254,45 +288,32 @@ void InitMain()
 	mState = MAIN_COMMAND;	//コマンド選択画面へ
 	cState = COMMAND_DIR;	//方向選択から選択できるように
 	count = 0;
+	startcount = 3*FPS;		//3,2,1...
 	nowcommand = 0;
 	win = 0;
 	gCommand.dir = 0;		 //上方向から選択できるように
 	gCommand.gun = C_SCOPE; //照準から選択できるように
 	cflg = C_NO;
+	gBoss.state = LIVING;
 
 	/* 敵の武器決定(ランダム) */
 	for(i=1; i<CT_NUM; i++){
 		gChara[i].gun	= rand() % MAX_PLAYERGUN;
-		gChara[i].armor = rand() % MAX_ARMOR;
+		gChara[i].armor = ARMOR_MIDDLE;//rand() % MAX_ARMOR;
 	}
 
 	 /* 座標, 角度の決定 */
 	for(i=0; i<CT_NUM; i++)
 		gChara[i].state = LIVING; //先に設定
 	for(i=0; i<CT_NUM; i++){
-		posflg = 1;
-		n = 0;
-		/* 座標決め、重なっていたらやり直し */
-		do{
-			gChara[i].pos.x = cpos.x = rand() % (F_WIDTH-S_SIZE);
-			gChara[i].pos.y = cpos.y = rand() % (HEIGHT-S_SIZE);
-			for(j=0; j<i+1; j++){
-				if((i != j && cpos.x <= gChara[j].pos.x + S_SIZE && cpos.x + S_SIZE >= gChara[j].pos.x &&
-							  cpos.y <= gChara[j].pos.y + S_SIZE && cpos.y + S_SIZE >= gChara[j].pos.y) ||
-					(tState == ADVENTURE && cpos.x <= gBoss.pos.x + gBoss.w && cpos.x + S_SIZE >= gBoss.pos.x &&
-											cpos.y <= gBoss.pos.y + gBoss.h && cpos.y + S_SIZE >= gBoss.pos.y)){
-					n++;
-					if(n >= CT_NUM * 10){
-						printf("failed to put character\n");
-						posflg = 0;
-						gState = GAME_END;
-					}
-				}
-				else{
-					posflg = 0;
-				}
-			}
-		} while(posflg);
+		if(tState == VS_MODE){
+			gChara[i].pos.x = F_WIDTH*((i%2)*2+1)/4 - S_SIZE/2;
+			gChara[i].pos.y = HEIGHT*((i/2)*2+1)/4 - S_SIZE/2;
+		}
+		else{
+			gChara[i].pos.x = F_WIDTH/4 - S_SIZE/2;
+			gChara[i].pos.y = HEIGHT*((i%2)*2+1)/4 - S_SIZE/2;
+		}
 		gChara[i].dir	= DecideDir(i, gChara[i].pos);
 		gChara[i].maxhp = gArmor[gChara[i].armor].hp;
 		gChara[i].hp	= gChara[i].maxhp;
@@ -300,7 +321,8 @@ void InitMain()
 		gChara[i].speed = gArmor[gChara[i].armor].speed;
 		gChara[i].cnum[0] = gChara[i].cnum[1] = 0;
 		gChara[i].ctype = 0;
-		gChara[i].dcount = 0;
+		gChara[i].sflg = 0;
+		gChara[i].dcount = gChara[i].scount = 0;
 		for(j=0; j<MAX_COMMAND; j++){
 			gChara[i].command[0][j] = -1;
 			gChara[i].command[1][j] = -1;
@@ -346,7 +368,8 @@ void InitAdventure()
 	gBoss.anipat = 0;
 	gBoss.anipatnum = bData[gBoss.no].anipat;
 	gBoss.next 		= bData[gBoss.no].next;
-	gBoss.dcount	= 0;
+	gBoss.sflg		= 0;
+	gBoss.dcount	= gBoss.scount = 0;
 	for(i=0; i<MAX_BOSSCOMMAND; i++){
 		gBoss.movecommand[i] = (int)(bData[gBoss.no].movecommand/pow(10, MAX_BOSSCOMMAND-i-1)) % 10;
 	}
@@ -393,7 +416,7 @@ void UseCommand()
 					break;
 				case C_FIRE: //発射
 					if(gGun[gChara[i].gun].type == MOB){
-						MakeMob(i, gGun[gChara[i].gun], spos, DecideDir(i, spos), (nowcommand-1) % MAX_COMMAND);
+						MakeMob(i, gGun[gChara[i].gun], spos, gChara[i].dir, (nowcommand-1) % MAX_COMMAND);
 					}
 					Fire(i, gChara[i].gun, spos, gChara[i].dir);
 					break;
@@ -436,7 +459,8 @@ void UseCommand()
 					break;
 				case BOSS_FIRE: //発射
 					if(gGun[gBoss.gun[i]].type == MOB){
-						MakeMob(BOSS, gGun[gBoss.gun[i]], spos, DecideDir(BOSS, spos), (nowcommand-1) % MAX_COMMAND);
+						MakeMob(BOSS, gGun[gBoss.gun[i]], spos, gBoss.dir[i], (nowcommand-1) % MAX_COMMAND);
+						printf("%d\n", gBoss.dir[0]);
 					}
 					Fire(BOSS, gBoss.gun[i], spos, gBoss.dir[i]);
 					break;
@@ -478,7 +502,7 @@ void UseCommand()
 				spos.y = gMob[i].pos.y + gMob[i].h / 2;
 				switch(gMob[i].command[(nowcommand + gMob[i].delay) % gMob[i].cnum]){
 				case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: //8方位移動
-					gMob[i].pos = MoveMob(gMob[i].id, gMob[i].pos, gMob[i].w, gMob[i].h, (gMob[i].dir + gMob[i].command[nowcommand % gMob[i].cnum] * 45) % 360, gMob[i].speed);
+					gMob[i].pos = MoveMob(i, gMob[i].type, gMob[i].id, gMob[i].pos, gMob[i].w, gMob[i].h, (gMob[i].dir + gMob[i].command[nowcommand % gMob[i].cnum] * 45) % 360, gMob[i].speed);
 					break;
 				case C_SCOPE: //照準
 					if(count <= MAX_COUNT / 2) //2倍の速さで振り向く
@@ -569,14 +593,15 @@ int DecideDir(int ct, Pos pos)
 			minid = i;
 		}
 	}
-	/* BOSS */
+	/* player -> BOSS */
 	if(tState == ADVENTURE && ct != BOSS){
 		minid	= BOSS;
 		mintype = BOSS;
 	}
 	/* MOB */
 	for(i=0; i<MAX_USEMOB; i++){
-		if(gMob[i].state == LIVING && (tState == VS_MODE ||(tState == ADVENTURE && ct != BOSS && gMob[i].id == BOSS))){
+		if(gMob[i].state == LIVING && gMob[i].type != M_SHOT &&
+				(tState == VS_MODE ||(tState == ADVENTURE && ct != BOSS && gMob[i].id == BOSS))){
 			d[i] = DecideDistance(pos, gMob[i].pos);
 			switch(mintype){
 			case PLAYER:
@@ -635,7 +660,7 @@ int DecideDistance(Pos p1, Pos p2)
 /*****************************************************************
 関数名 : Fire
 機能	: 玉の発射処理
-引数	: ct : 発射したキャラクターの番号　gun : 武器の種類
+引数	: ct : 発射したキャラクターの番号　gun : 武器の種類  pos : 発射座標  dir : 発射角
 出力	: なし
 *****************************************************************/
 void Fire(int ct, int gun, Pos pos, int dir)
@@ -678,7 +703,7 @@ void Fire(int ct, int gun, Pos pos, int dir)
 /*****************************************************************
 関数名 : MakeShot
 機能	: 玉の作成
-引数	: ct : 発射したキャラクターの番号　gun : 武器の番号  dir : 角度  color : 玉の色
+引数	: ct : 発射したキャラクターの番号　gun : 武器の番号  pos : 発射座標  dir : 角度
 出力	: なし
 *****************************************************************/
 void MakeShot(int ct, int gun, Pos pos, int dir)
@@ -703,7 +728,7 @@ void MakeShot(int ct, int gun, Pos pos, int dir)
 /*****************************************************************
 関数名 : MakeMob
 機能	: サポートキャラ(Mob)の作成
-引数	: gun : ボスの武器配列の添字(0〜MAX_BOSSGUN)　dir : 角度
+引数	: ct 作成キャラの番号 gun : 武器の情報  pos : 発射座標  dir : 角度  delay : 発射時間の遅れ
 出力	: なし
 *****************************************************************/
 void MakeMob(int ct, GunInfo gun, Pos pos, int dir, int delay){
@@ -712,19 +737,20 @@ void MakeMob(int ct, GunInfo gun, Pos pos, int dir, int delay){
 		if(gMob[i].state == LIVING && gMob[i].id == ct){
 			num++;
 		}
-		else if(gMob[i].state == DEAD && num < gun.speed){
+		else if(gMob[i].state == DEAD && num < gun.mobnum){
 			gMob[i].state		= LIVING;
-			gMob[i].no			= gun.atk;
+			gMob[i].no			= gun.mobno;
+			gMob[i].type		= mData[gMob[i].no].type;
 			gMob[i].id			= ct;
 			gMob[i].w			= mData[gMob[i].no].w;
 			gMob[i].h			= mData[gMob[i].no].h;
 			gMob[i].pos.x		= pos.x - gMob[i].w / 2;
 			gMob[i].pos.y		= pos.y - gMob[i].h / 2;
 			gMob[i].dir			= gMob[i].startdir = gMob[i].goaldir = dir;
-			gMob[i].gun			= mData[gMob[i].no].gun;
 			gMob[i].hp			= gMob[i].maxhp = mData[gMob[i].no].hp;
-			gMob[i].atk			= gGun[gMob[i].gun].atk;
-			gMob[i].speed		= gGun[gMob[i].gun].speed;
+			gMob[i].gun			= mData[gMob[i].no].gun;
+			gMob[i].atk			= mData[gMob[i].no].atk;
+			gMob[i].speed		= mData[gMob[i].no].speed;
 			gMob[i].delay		= delay;
 			gMob[i].anipat		= 0;
 			gMob[i].anipatnum	= mData[gMob[i].no].anipat;
@@ -780,10 +806,10 @@ Pos MoveChara(int ct, Pos pos, int dir, int speed)
 /*****************************************************************
 関数名 : MoveMob
 機能	: Mobの移動
-引数	: ct : キャラの番号 pos : 移動前の座標  dir : 移動方向  speed : 速さ
+引数	: ct : モブの番号 pos : 移動前の座標  dir : 移動方向  speed : 速さ  w, h : 大きさ
 出力	: なし
 *****************************************************************/
-Pos MoveMob(int ct, Pos pos, int w, int h, int dir, int speed)
+Pos MoveMob(int ct, int type, int id, Pos pos, int w, int h, int dir, int speed)
 {
 	int i;
 	Pos newpos = pos;
@@ -791,17 +817,38 @@ Pos MoveMob(int ct, Pos pos, int w, int h, int dir, int speed)
 	newpos.y = pos.y - speed * cos(dir * M_PI /180);
 
 	/* 壁と衝突時 */
-	if((newpos.x < 0) || (newpos.x + w > F_WIDTH))
+	if(type == M_CHARA && (newpos.x < 0 || newpos.x + w > F_WIDTH)){
 		newpos.x = pos.x;
-	if((newpos.y < 0) || (newpos.y + h > HEIGHT))
+	}
+	if(type == M_CHARA && (newpos.y < 0 || newpos.y + h > HEIGHT)){
 		newpos.y = pos.y;
+	}
 
-	/* キャラクターと衝突時 */
+	if(type == M_SHOT && ((newpos.y + h/2 < 0 || newpos.y + h/2 > F_WIDTH) || (newpos.x + w/2 < 0 || newpos.x + w/2 > F_WIDTH))){
+		gMob[ct].state = DEAD;
+	}
+
+	/* mob -> キャラ */
 	for(i=0; i<CT_NUM; i++){
-		if((ct == BOSS || (tState == VS_MODE && i != ct)) && gChara[i].state == LIVING &&
+		if((id == BOSS || (tState == VS_MODE && i != id)) && gChara[i].state == LIVING &&
 			newpos.x <= gChara[i].pos.x + S_SIZE && newpos.x + w >= gChara[i].pos.x &&
 			newpos.y <= gChara[i].pos.y + S_SIZE && newpos.y + h >= gChara[i].pos.y){
 			newpos = pos;
+			if(type == M_SHOT){
+				gChara[i].hp -= gMob[ct].atk;
+				gMob[ct].state = DEAD;
+			}
+		}
+	}
+
+	/* mob -> boss */
+	if(tState == ADVENTURE && id != BOSS && gBoss.state == LIVING &&
+		newpos.x <= gBoss.pos.x + gBoss.w && newpos.x + w >= gBoss.pos.x &&
+		newpos.y <= gBoss.pos.y + gBoss.h && newpos.y + h >= gBoss.pos.y){
+		newpos = pos;
+		if(type == M_SHOT){
+			gBoss.hp -= gMob[ct].atk;
+			gMob[ct].state = DEAD;
 		}
 	}
 
@@ -976,6 +1023,74 @@ void MoveShot()
 			} while(lflg);
 		}
 	}
+}
+
+/*****************************************************************
+関数名 : CheckSpell
+機能	: キャラのspell発動判定
+引数	: なし
+出力	: なし
+*****************************************************************/
+void CheckSpell(){
+	int i;
+	for(i=0; i<CT_NUM; i++){
+		if(gChara[i].state == LIVING && gChara[i].sflg == 0)
+			switch(gChara[i].armor){
+			case ARMOR_MISSILE:
+				if((nowcommand-4) % 4 == 0 && count == 0) //4の倍数
+					gChara[i].sflg = 1;
+				break;
+			default:
+				break;
+			}
+	}
+
+	if(gBoss.state == LIVING && gBoss.sflg == 0)
+		switch(gBoss.no){
+		case SENKOUSHA:
+			if(nowcommand == 2 && count == 0)
+				gBoss.sflg = 1;
+			break;
+		default:
+			break;
+		}
+}
+
+/*****************************************************************
+関数名 : UseSpell
+機能	: キャラのspell発動
+引数	: なし
+出力	: なし
+*****************************************************************/
+void UseSpell(){
+	int i;
+	Pos spos;
+	for(i=0; i<CT_NUM; i++){
+		if(gChara[i].state == LIVING && gChara[i].sflg == 1)
+			switch(gChara[i].armor){
+			case ARMOR_MISSILE:
+				spos.x = gChara[i].pos.x + S_SIZE / 2;
+				spos.y = gChara[i].pos.y + S_SIZE / 2;
+				MakeMob(i, gGun[GUN_MISSILE], spos, gChara[i].dir, 0);
+				gChara[i].sflg = 0;
+				break;
+			default:
+				break;
+			}
+	}
+
+	if(gBoss.state == LIVING && gBoss.sflg == 1)
+		switch(gBoss.no){
+		case SENKOUSHA:
+			spos.x = gBoss.pos.x + gBoss.w / 2;
+			spos.y = gBoss.pos.y + gBoss.h / 2;
+			if(count == 0 || count == MAX_COUNT /2){
+				MakeMob(BOSS, gGun[GUN_MISSILE], spos, gBoss.scount*45, 0);
+				gBoss.scount++;
+			}
+			if(gBoss.scount == 8)
+				gBoss.sflg = 0;
+		}
 }
 
 /*****************************************************************

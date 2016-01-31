@@ -11,12 +11,13 @@
 
 static char BRSImgFile[]  = "img/BRS.png";
 static char TitleImgFile[]  = "img/title.png";
+static char CountImgFile[]  = "img/count.png";
 static char ResultImgFile[2][16] = {"img/win.png", "img/lose.png"};
 static char NumberImgFile[] = {"img/number.png"};
 static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
 static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png", "img/boss03.png", "img/boss04.png"};
-static char MobImgFile[MAX_MOB][16] =	{"img/mob00.png", "img/mob01.png"};
+static char MobImgFile[MAX_MOB][16] =	{"img/mob00.png", "img/mob01.png", "img/mob02.png", "img/mob03.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
@@ -29,6 +30,7 @@ static char InfoImgFile[] = "img/info.png";
 static SDL_Surface *gMainWindow;
 static SDL_Surface *BRSWindow;
 static SDL_Surface *TitleWindow;
+static SDL_Surface *CountWindow;
 static SDL_Surface *ResultWindow[2];
 static SDL_Surface *NumWindow;
 static SDL_Surface *ShipWindow[MAX_CT];
@@ -52,9 +54,10 @@ typedef struct {
 
 static void DrawCommand();
 static void DrawShip();
+static void DrawCount();
 static void DrawShot();
 static void DrawMainCommand();
-extern void DrawBomb();
+static void DrawBomb();
 static void DrawResult();
 static void WindowEvent(SDLKey key);
 
@@ -86,6 +89,12 @@ int InitWindow()
     TitleWindow = IMG_Load(TitleImgFile);
     if(TitleWindow == NULL){
         printf("failed to open title image.");
+        return -1;
+    }
+
+    CountWindow = IMG_Load(CountImgFile);
+    if(CountWindow == NULL){
+        printf("failed to open count image.");
         return -1;
     }
 
@@ -141,7 +150,7 @@ int InitWindow()
 
     BombWindow = IMG_Load(BombImgFile);
         if(BombWindow == NULL){
-        	printf("failed to bomb armor image.");
+        	printf("failed to open bomb image.");
         	return -1;
         }
 
@@ -255,12 +264,12 @@ void DrawBossEdit()
 }
 
 /*****************************************************************
-関数名 : DrawCommandEdit
-機能	: コマンド編集画面の描画
+関数名 : DrawEdit
+機能	: 装備編集画面の描画
 引数	: なし
 出力	: なし
 *****************************************************************/
-void DrawCommandEdit()
+void DrawEdit()
 {
 	Rect rect = {{0, 0, 0, 0}, {0, 0}};
 
@@ -285,14 +294,16 @@ void DrawCommandEdit()
 	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
 	rect.dst.x = 3 * F_WIDTH /8;
 	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
+	rect.dst.x = 5 * F_WIDTH /8;
+	SDL_BlitSurface(ArrowWindow, &(rect.src), gMainWindow, &(rect.dst));
 
-	/*選択しているコマンドに枠を付ける*/
+	/*選択している装備に枠を付ける*/
 	boxColor(gMainWindow, F_WIDTH*(eState*2+1)/8-5, 5*HEIGHT/8-5, F_WIDTH*(eState*2+1)/8+C_SIZE+5, 5*HEIGHT/8+C_SIZE+5, 0xFF0000FF);
 
 	rect.src.x = gChara[0].gun*100;
 	rect.src.y = 0;
 	rect.src.w = rect.src.h = 100;
-	rect.dst.x = 1 * F_WIDTH /8;
+	rect.dst.x = F_WIDTH /8;
 	rect.dst.y = 5 * HEIGHT /8;
 	SDL_BlitSurface(GunWindow, &(rect.src), gMainWindow, &(rect.dst));
 	rect.src.x = gChara[0].armor*100;
@@ -321,6 +332,10 @@ void DrawMain()
 
 	if(mState == MAIN_COMMAND) //コマンド入力
 		DrawCommand();
+	else if(mState == MAIN_COUNT){
+		DrawMainCommand();
+		DrawCount();
+	}
 	else if(mState == MAIN_MOVE){ //コマンド適用
 		DrawShot();
 		DrawMainCommand();
@@ -414,7 +429,7 @@ void DrawCommand()
 
 /*****************************************************************
 関数名 : DrawShip
-機能	: 船(仮)を描画する
+機能	: 船(仮)、mob、ボスを描画する
 引数	: なし
 出力	: なし
 *****************************************************************/
@@ -446,28 +461,35 @@ void DrawShip()
 
 	for(i=0; i<MAX_USEMOB; i++){
 		if(gMob[i].state == LIVING){
-			if(gMob[i].anipatnum <= 1)
-				rect.src.x = 0;
-			else{
-				gMob[i].anipat = (gMob[i].anipat + 1) % (gMob[i].anipatnum * 2);
-				rect.src.x = gMob[i].anipat/2 * gMob[i].w;
+			if(gMob[i].type == M_CHARA){
+			//hpを表す四角形を描画
+				if(gMob[i].hp > gMob[i].maxhp/2)
+					boxColor(gMainWindow, gMob[i].pos.x - 50 , gMob[i].pos.y + gMob[i].h,
+							gMob[i].pos.x - 50 + (gMob[i].w + 100) * (double)(gMob[i].hp) / gMob[i].maxhp, gMob[i].pos.y + gMob[i].h + 10, 0x00ff0080);
+				else
+					boxColor(gMainWindow, gMob[i].pos.x - 50 , gMob[i].pos.y + gMob[i].h,
+							gMob[i].pos.x - 50 + (gMob[i].w +100) * (double)(gMob[i].hp) / gMob[i].maxhp, gMob[i].pos.y + gMob[i].h + 10, 0xff000080);
+				rectangleColor(gMainWindow, gMob[i].pos.x - 50, gMob[i].pos.y + gMob[i].h,
+						gMob[i].pos.x + gMob[i].w + 50, gMob[i].pos.y + gMob[i].h + 10 , 0xff000080);
+
+				if(gMob[i].anipatnum <= 1)
+					rect.src.x = 0;
+				else{
+					gMob[i].anipat = (gMob[i].anipat + 1) % (gMob[i].anipatnum * 2);
+					rect.src.x = gMob[i].anipat/2 * gMob[i].w;
+				}
+				rect.src.y = 0;
 			}
-			rect.src.y = 0;
+			else if(gMob[i].type == M_SHOT){
+				rect.src.x = (((gMob[i].dir % 360) % 45) / 5 * gMob[i].w);
+				rect.src.y = ((gMob[i].dir % 360) / 45) * gMob[i].h;
+			}
 			rect.src.w = gMob[i].w;
 			rect.src.h = gMob[i].h;
 			rect.dst.x = gMob[i].pos.x;
 			rect.dst.y = gMob[i].pos.y;
 			SDL_BlitSurface(MobWindow[gMob[i].no], &(rect.src), gMainWindow, &(rect.dst));
 
-			//hpを表す四角形を描画
-			if(gMob[i].hp > gMob[i].maxhp/2)
-				boxColor(gMainWindow, gMob[i].pos.x - 50 , gMob[i].pos.y + gMob[i].h,
-						gMob[i].pos.x - 50 + (gMob[i].w + 100) * (double)(gMob[i].hp) / gMob[i].maxhp, gMob[i].pos.y + gMob[i].h + 10, 0x00ff0080);
-			else
-				boxColor(gMainWindow, gMob[i].pos.x - 50 , gMob[i].pos.y + gMob[i].h,
-						gMob[i].pos.x - 50 + (gMob[i].w +100) * (double)(gMob[i].hp) / gMob[i].maxhp, gMob[i].pos.y + gMob[i].h + 10, 0xff000080);
-			rectangleColor(gMainWindow, gMob[i].pos.x - 50, gMob[i].pos.y + gMob[i].h,
-					gMob[i].pos.x + gMob[i].w + 50, gMob[i].pos.y + gMob[i].h + 10 , 0xff000080);
 		}
 	}
 
@@ -500,6 +522,27 @@ void DrawShip()
 	// 1Pの区別用
 	if(gChara[0].state == LIVING)
 		filledCircleColor(gMainWindow, gChara[0].pos.x+S_SIZE/2, gChara[0].pos.y+S_SIZE/2, 10, 0xFFFFFFF); //自分を写す
+}
+
+/*****************************************************************
+関数名 : DrawCount
+機能	: カウントダウンの描画処理
+引数	: なし
+出力	: なし
+*****************************************************************/
+void DrawCount()
+{
+	Rect rect = {{0, 0, 0, 0}, {0, 0}};
+	startcount--;
+	rect.src.x = ((int)startcount / FPS)*300;
+	rect.src.y = 0;
+	rect.src.w = CountWindow->w/3;
+	rect.src.h = CountWindow->h;
+	rect.dst.x = (F_WIDTH - rect.src.w) / 2;
+	rect.dst.y = (F_WIDTH - rect.src.h) / 2;
+	SDL_BlitSurface(CountWindow, &(rect.src), gMainWindow, &(rect.dst));
+	if(startcount == 0)
+		mState = MAIN_MOVE;	//動作に移行
 }
 
 /*****************************************************************
@@ -600,8 +643,8 @@ void DrawBomb(){
 	if(gBoss.dcount < MAX_DCOUNT && gBoss.state == DEAD){
 		rect.src.x = 0;
 		rect.src.y = 0;
-		rect.src.w = 200;
-		rect.src.h = 200;
+		rect.src.w = BombWindow->w;
+		rect.src.h = BombWindow->h;
 		rect.dst.x = gBoss.pos.x + gBoss.w / 2 - rect.src.w / 2;
 		rect.dst.y = gBoss.pos.y + gBoss.h / 2 - rect.src.h / 2;
 		SDL_BlitSurface(BombWindow, &(rect.src), gMainWindow, &(rect.dst));
@@ -684,7 +727,7 @@ void WindowEvent(SDLKey key)
 			if(tState == ADVENTURE)
 				gState = GAME_BOSS;
 			else if(tState == VS_MODE)
-				gState = GAME_COMMAND;
+				gState = GAME_EDIT;
 			else
 				gState = GAME_END;
 		}
@@ -695,8 +738,11 @@ void WindowEvent(SDLKey key)
 		break;
 	case GAME_BOSS:
 		switch(key){
+		case SDLK_z:
+			gState = GAME_TITLE;
+			break;
 		case SDLK_x:
-			gState = GAME_COMMAND;
+			gState = GAME_EDIT;
 			break;
 		case SDLK_UP: //コマンドの選択
 			gBoss.no = (gBoss.no + 1) % MAX_BOSS;
@@ -708,11 +754,11 @@ void WindowEvent(SDLKey key)
 			break;
 		}
 		break;
-	case GAME_COMMAND:
+	case GAME_EDIT:
 		/* コマンド編集 */
 		switch(key){
 		case SDLK_z:
-			gState = GAME_TITLE;
+			gState = GAME_BOSS;
 			break;
 		case SDLK_x: //エディット->メインへ
 			if(eState == EDIT_DECIDE)
@@ -778,7 +824,7 @@ void WindowEvent(SDLKey key)
 						gChara[0].ctype = 1;
 					}
 					else{
-						mState = MAIN_MOVE;	//動作に移行
+						mState = MAIN_COUNT;	//カウントに移行
 						//COMのコマンド決定
 						for(i=1; i<CT_NUM; i++){
 							gChara[0].ctype = 0;
@@ -824,6 +870,9 @@ void WindowEvent(SDLKey key)
 		case MAIN_RESULT://結果->コマンドへ
 			if(key == SDLK_x)
 				gState = GAME_TITLE;
+			break;
+		case MAIN_COUNT:
+		default:
 			break;
 		}
 		break;

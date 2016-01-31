@@ -21,32 +21,33 @@
 #define HEIGHT 768		/* ウィンドウの高さ */
 #define F_WIDTH 768	/* フィールドの幅 */
 
-#define S_SIZE  50	 /* 船(仮)の大きさ */
-#define C_SIZE  100 /* コマンドアイコンの大きさ */
-#define MAX_CT 4				/* キャラクターの最大数 */
-#define MAX_COMMAND 6			/* コマンドの最大格納数 */
-#define MAX_BOSSCOMMAND 8		/* ボス用コマンドの最大格納数 */
-#define MAX_SHOT 300
-#define MAX_USEMOB 50			/* 使用可能なMobの数 */
-#define MAX_COUNT 20			/* 最大カウント、減らすほど速度up */
+#define S_SIZE 50			/* 船(仮)の大きさ */
+#define C_SIZE 100			/* コマンドアイコンの大きさ */
+#define MAX_CT 4			/* キャラクターの最大数 */
+#define MAX_COMMAND 6		/* コマンドの最大格納数 */
+#define MAX_BOSSCOMMAND 8	/* ボス用コマンドの最大格納数 */
+#define MAX_SHOT	300
+#define MAX_USEMOB	50		/* 使用可能なMobの数 */
+#define MAX_COUNT	20		/* 最大カウント、減らすほど速度up */
 #define MAX_DCOUNT 50
+#define FPS		25		/* フレームパーセク */
 
 #define PLAYER 0
 #define BOSS	4
 /* ゲームの状態 */
 typedef enum{
-    GAME_TITLE,	/* タイトル */
-	GAME_BOSS,	/* ボス編集 */
-	GAME_COMMAND,	/* コマンド編集 */
-    GAME_MAIN,	/* メイン */
-	GAME_END	/* 終了 */
+    GAME_TITLE,		/* タイトル */
+	GAME_BOSS,		/* ボス編集 */
+	GAME_EDIT,	/* コマンド編集 */
+    GAME_MAIN,		/* メイン */
+	GAME_END		/* 終了 */
 }GameState;
 
 /* タイトルの状態 */
 typedef enum{
-    ADVENTURE = 0,/* タイトル */
-	VS_MODE	= 1,	/* 編集 */
-    TITLE_QUIT		= 2		/* 終了 */
+    ADVENTURE	= 0,	/* タイトル */
+	VS_MODE		= 1,	/* 編集 */
+    TITLE_QUIT	= 2		/* 終了 */
 }TitleState;
 
 /* 編集モードの状態 */
@@ -58,9 +59,10 @@ typedef enum{
 
 /* メインモードの状態 */
 typedef enum{
-    MAIN_COMMAND, /* コマンド入力 */
-	MAIN_MOVE,	  /* 動作 */
-	MAIN_RESULT   /* 結果 */
+    MAIN_COMMAND,	/* コマンド入力 */
+	MAIN_COUNT,		/* 対戦前のカウント */
+	MAIN_MOVE,	 	/* 動作 */
+	MAIN_RESULT   	/* 結果 */
 }MainState;
 
 /*コマンドの選択タブ */
@@ -72,14 +74,15 @@ typedef enum{
 }CommandState;
 
 enum{
-	C_SCOPE = 8,	 /* 照準 */
-	C_FIRE  = 9	 /* 発射 */
+	C_SCOPE = 8,	/* 照準コマンド */
+	C_FIRE  = 9		/* 発射コマンド */
 };
 
+/* 選べるやつの最大数 */
 enum{
 	MAX_TITLE		= 3,
-	MAX_EDIT		= 3,	/* 編集項目の数 */
-	MAX_ECOMMAND	= 4
+	MAX_EDIT		= 3,	/* 武器、防具、決定 */
+	MAX_ECOMMAND	= 4		/* 方向、発射、おまかせ、決定 */
 };
 
 /* 武器・防具の種類 */
@@ -87,26 +90,49 @@ enum{
 	GUN_1SHOT		= 0, /* 1ショット */
 	GUN_3SHOT		= 1, /* 3ショット */
 	GUN_BUBBLE		= 2, /* バブル */
-	GUN_MILK		= 3, /* ミルクの科学 */
-	GUN_1LASER		= 4, /* レーザー */
+	GUN_1LASER		= 3, /* レーザー */
 
-	GUN_MSHOT	= 5,
+	GUN_MILK		= 4, /* ミルクの科学 */
+	GUN_MSHOT		= 5,
 	GUN_5SHOT		= 6, /* 5ショット */
 	GUN_3LASER		= 7, /* 3レーザー */
 	GUN_NUCLEAR		= 8,
 	GUN_HOMO0		= 9,
 	GUN_HOMO1		= 10,
+	GUN_MISSILE		= 11,
+	GUN_FIRE		= 12,
 
-	MAX_GUN			= 11, /* ボス用の武器も含めた武器の数 */
-	MAX_PLAYERGUN	= 5, /* プレイヤーが使用可能な武器の数 */
+	MAX_GUN			= 13, /* ボス用の武器も含めた武器の数 */
+	MAX_PLAYERGUN	= 4, /* プレイヤーが使用可能な武器の数 */
 	MAX_BOSSGUN		= 3, /* ボスが一度に使用可能な武器の数 */
 
 	ARMOR_LIGHT		= 0, /* 軽 */
 	ARMOR_MIDDLE	= 1, /* 中 */
 	ARMOR_HEAVY		= 2, /* 重 */
-	MAX_ARMOR		= 3
+	ARMOR_MISSILE	= 3,
+	MAX_ARMOR		= 4,
 };
 
+/* mobのタイプ */
+enum{
+	HOMO0	= 0,
+	HOMO1	= 1,
+	MISSILE	= 2,
+	FIRE	= 3,
+	MAX_MOB	= 4,
+
+	M_CHARA	= 0,	/* キャラとして機能 */
+	M_SHOT	= 1		/* ミサイル */
+};
+
+/* ショットのタイプ */
+enum{
+	SHOT	= 0,
+	LASER	= 1,
+	MOB		= 2
+};
+
+/* ボスの種類 */
 enum{
 	SENKOUSHA		= 0,
 	GAHARA			= 1,
@@ -115,13 +141,10 @@ enum{
 	HOMO			= 4,
 	MAX_BOSS		= 5,
 
-	HOMO0			= 0,
-	HOMO1			= 1,
-	MAX_MOB		= 2,
-
 	DELETE			= -1
 };
 
+/* ボスの動作 */
 enum{
 	MOVE_NOTHING	= 0,
 	MOVE_UP			= 1,
@@ -138,12 +161,7 @@ enum{
 	BOSS_FIRE		= 2
 };
 
-enum{
-	SHOT	= 0,
-	LASER	= 1,
-	MOB		= 2
-};
-
+/* コマンド変更の変遷 */
 enum{
 	C_NO	= 0,
 	C_PUSH	= 1,
@@ -155,6 +173,8 @@ enum{
 typedef struct{
 	int type;	/* 弾 or レーザー or Mob */
 	int atk;	/* 攻撃力 */
+	int mobno;	/* 召喚するmobの番号 */
+	int mobnum;	/* 召喚可能なmobの最大数 */
 	int speed;	/* 弾速 */
 	int size;	/* 弾の大きさ */
 	int color;	/* 玉の色(16進数) */
@@ -182,18 +202,19 @@ typedef struct{
 typedef struct{
 	int type;		/* 小型ロボ or ミサイル */
     int command; 	/* 発射コマンド, 6桁 */
-	int gun;			/* 装備中の武器 */
-	int hp;							/* 最大HP */
-	int speed;						/* 速度 */
+	int gun;		/* 装備中の武器 */
+	int hp;			/* 最大HP */
+	int atk;
+	int speed;		/* 速度 */
 	int w;
 	int h;
-	int anipat;						/* アニメのパターン */
+	int anipat;		/* アニメのパターン */
 } MobData;
 
 typedef struct{
 	int no;							/* 個体 */
+	int type;
 	int id;							/* 所有者 */
-	//int type;
     Pos pos;						/* 発射座標 */
 	CharaState state;
     int dir;						/* キャラクターの角度 */
@@ -230,6 +251,8 @@ typedef struct{
 	int atk;					/* 攻撃力 */
 	int speed;
 	int dcount;					/* 戦闘不能になってからの経過時間 */
+	int sflg;					/* spell flag */
+	int scount;					/* spell count */
 } CharaInfo;
 
 /* ボスの情報 */
@@ -267,6 +290,8 @@ typedef struct{
 	int anipatnum;									/* アニメのパターンの最大数 */
 	int next;										/* 次の形態 */
 	int dcount;
+	int sflg;					/* spell flag */
+	int scount;					/* spell count */
 } BossInfo;
 
 /* 玉の情報 */
@@ -294,6 +319,7 @@ int count;		/* 移動処理のためのカウント */
 int nowcommand;	/* 現在適用されているコマンド */
 int win;		/* 勝敗, 1:勝ち, 2:負け */
 int cflg;		/* コマンド変更フラグ */
+int startcount;	/* はじめる前にカウントとかしたいじゃん */
 GameState gState;
 TitleState tState;
 EditState eState;

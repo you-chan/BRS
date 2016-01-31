@@ -28,7 +28,7 @@ int main(int argc,char *argv[])
 			GameTitle();
 			break;
 		case GAME_BOSS:
-		case GAME_COMMAND:
+		case GAME_EDIT:
 			GameEdit();
 			break;
 		case GAME_MAIN:
@@ -72,9 +72,9 @@ int GameEdit()
         InputKey();
         DrawBossEdit();
     }
-    while(gState == GAME_COMMAND){
+    while(gState == GAME_EDIT){
         InputKey();
-        DrawCommandEdit();
+        DrawEdit();
     }
     return gState;
 }
@@ -103,7 +103,7 @@ int GameMain()
     	if(now >= interval){
 			TimerEvent(++time);
 			/* 0.04秒(25fps)ごとにタイマー処理するよう設定 */
-			interval = now + (1000 / 25); //fps
+			interval = now + (1000 / FPS); //fps
     	}
     }
     return gState;
@@ -119,9 +119,11 @@ void TimerEvent(int time){
 	/* time%5->0.2秒毎, time%25->1秒毎くらい */
 	DrawMain();
 	if(mState == MAIN_MOVE){
-		MoveShot();
-		CheckDestroy();
-		UseCommand();
+		UseCommand();	//コマンド使用,キャラの移動
+		CheckSpell();	//spell判定
+		UseSpell();		//spell発動
+		MoveShot();		//弾の移動
+		CheckDestroy();	//死亡判定
 	}
 }
 

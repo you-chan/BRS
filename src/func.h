@@ -12,7 +12,7 @@
 extern int  InitWindow();
 extern void DrawTitle();
 extern void DrawBossEdit();
-extern void DrawCommandEdit();
+extern void DrawEdit();
 extern void DrawMain();
 extern void InputKey();
 extern void DestroyWindow();
@@ -25,6 +25,8 @@ extern void InitMain();
 extern void InitAdventure();
 extern void UseCommand();
 extern void MoveShot();
+extern void CheckSpell();
+extern void UseSpell();
 extern void CheckDestroy();
 
 #endif /* BRS_SRC_FUNC_H_ */
