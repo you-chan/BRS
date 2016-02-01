@@ -10,6 +10,7 @@ static void MakeShot(int ct, int gun, Pos pos, int dir);
 static void MakeMob(int ct, GunInfo gun, Pos pos, int dir, int delay);
 static Pos MoveChara(int ct, Pos pos, int dir, int speed);
 static Pos MoveMob(int ct, int type, int id, Pos pos, int w, int h, int dir, int speed);
+static void Bomb(int bomb, int id, Pos pos);
 static Pos MoveBoss(Pos pos, int command);
 static int MoveDir(int startdir, int goaldir);
 
@@ -27,17 +28,6 @@ void InitSystem()
     srand(time(NULL));
 	gState = GAME_TITLE;
 
-	int i;
-	for(i=0; i<MAX_GUN; i++){
-		gGun[i].atk		= -1;
-		gGun[i].speed	= -1;
-		gGun[i].size	= -1;
-		gGun[i].color	= -1;
-		gGun[i].type	= -1;
-		gGun[i].mobno	= -1;
-		gGun[i].mobnum	= -1;
-	}
-
 	gArmor[ARMOR_LIGHT].hp		= 300;
 	gArmor[ARMOR_LIGHT].speed	= 10;
 	gArmor[ARMOR_MIDDLE].hp		= 450;
@@ -46,6 +36,8 @@ void InitSystem()
 	gArmor[ARMOR_HEAVY].speed	= 3;
 	gArmor[ARMOR_MISSILE].hp	= 600;
 	gArmor[ARMOR_MISSILE].speed	= 4;
+	gArmor[ARMOR_STAR].hp		= 400;
+	gArmor[ARMOR_STAR].speed	= 6;
 
 	gGun[GUN_1SHOT].type	= SHOT;
 	gGun[GUN_1SHOT].atk		= 100;
@@ -102,9 +94,22 @@ void InitSystem()
 	gGun[GUN_MISSILE].type	= MOB;
 	gGun[GUN_MISSILE].mobno	= MISSILE;
 	gGun[GUN_MISSILE].mobnum= 8;
-	gGun[GUN_FIRE].type	= MOB;
+	gGun[GUN_FIRE].type		= MOB;
 	gGun[GUN_FIRE].mobno	= FIRE;
-	gGun[GUN_FIRE].mobnum= 8;
+	gGun[GUN_FIRE].mobnum	= 30;
+	gGun[GUN_FIRE].type		= MOB;
+
+	bombData[B_MISSILE].atk		= 100;
+	bombData[B_MISSILE].r		= 50;//半径
+	bombData[B_MISSILE].w		= 100;
+	bombData[B_MISSILE].h		= 100;
+	bombData[B_MISSILE].anipat	= 1;
+
+	bombData[B_STAR].atk	= 100;
+	bombData[B_STAR].r		= 75;
+	bombData[B_STAR].w		= 150;
+	bombData[B_STAR].h		= 450;
+	bombData[B_STAR].anipat	= 8;
 
 	mData[HOMO0].type		= M_CHARA;
 	mData[HOMO0].gun		= GUN_MSHOT;
@@ -115,6 +120,7 @@ void InitSystem()
 	mData[HOMO0].speed		= 10;
 	mData[HOMO0].command	= 809809;
 	mData[HOMO0].anipat		= 1;
+	mData[HOMO0].bomb		= -1;
 
 	mData[HOMO1].type		= M_CHARA;
 	mData[HOMO1].gun		= GUN_MSHOT;
@@ -125,8 +131,21 @@ void InitSystem()
 	mData[HOMO1].speed		= 10;
 	mData[HOMO1].command	= 898989;
 	mData[HOMO1].anipat		= 1;
+	mData[HOMO1].bomb		= -1;
+
+	mData[FIRE].type	= M_SHOT;
+	mData[FIRE].gun		= -1;
+	mData[FIRE].hp		= 300;
+	mData[FIRE].atk		= 100;
+	mData[FIRE].w		= 90;
+	mData[FIRE].h		= 90;
+	mData[FIRE].speed	= 20;
+	mData[FIRE].command	= 0;
+	mData[FIRE].anipat	= 1;
+	mData[FIRE].bomb	= -1;
 
 	mData[MISSILE].type		= M_SHOT;
+	mData[MISSILE].gun		= -1;
 	mData[MISSILE].hp		= 300;
 	mData[MISSILE].atk		= 100;
 	mData[MISSILE].w		= 100;
@@ -134,15 +153,7 @@ void InitSystem()
 	mData[MISSILE].speed	= 15;
 	mData[MISSILE].command	= 0;
 	mData[MISSILE].anipat	= 1;
-
-	mData[FIRE].type	= M_SHOT;
-	mData[FIRE].hp		= 300;
-	mData[FIRE].atk		= 100;
-	mData[FIRE].w		= 200;
-	mData[FIRE].h		= 200;
-	mData[FIRE].speed	= 20;
-	mData[FIRE].command	= 0;
-	mData[FIRE].anipat	= 1;
+	mData[MISSILE].bomb		= B_MISSILE;
 
 	bData[SENKOUSHA].hp				= 2000;
 	bData[SENKOUSHA].w				= 200;
@@ -347,6 +358,11 @@ void InitMain()
 		gShot[i].color	= 0x00000000;
 		gShot[i].state	= DEAD;
 	}
+
+	for(i=0; i<MAX_USEBOMB; i++){
+		gBomb[i].bflg = 0;
+		gBomb[i].pos.x = gBomb[i].pos.y = 0;
+	}
 }
 
 /*****************************************************************
@@ -418,7 +434,8 @@ void UseCommand()
 					if(gGun[gChara[i].gun].type == MOB){
 						MakeMob(i, gGun[gChara[i].gun], spos, gChara[i].dir, (nowcommand-1) % MAX_COMMAND);
 					}
-					Fire(i, gChara[i].gun, spos, gChara[i].dir);
+					else
+						Fire(i, gChara[i].gun, spos, gChara[i].dir);
 					break;
 				default:
 					break;
@@ -460,9 +477,9 @@ void UseCommand()
 				case BOSS_FIRE: //発射
 					if(gGun[gBoss.gun[i]].type == MOB){
 						MakeMob(BOSS, gGun[gBoss.gun[i]], spos, gBoss.dir[i], (nowcommand-1) % MAX_COMMAND);
-						printf("%d\n", gBoss.dir[0]);
 					}
-					Fire(BOSS, gBoss.gun[i], spos, gBoss.dir[i]);
+					else
+						Fire(BOSS, gBoss.gun[i], spos, gBoss.dir[i]);
 					break;
 				default:
 					break;
@@ -754,6 +771,7 @@ void MakeMob(int ct, GunInfo gun, Pos pos, int dir, int delay){
 			gMob[i].delay		= delay;
 			gMob[i].anipat		= 0;
 			gMob[i].anipatnum	= mData[gMob[i].no].anipat;
+			gMob[i].bomb		= mData[gMob[i].no].bomb;
 			for(j=0; j<MAX_COMMAND; j++){
 				gMob[i].command[j] = (int)(mData[gMob[i].no].command/pow(10, (MAX_COMMAND-j-1))) % 10;
 			}
@@ -825,7 +843,7 @@ Pos MoveMob(int ct, int type, int id, Pos pos, int w, int h, int dir, int speed)
 	}
 
 	if(type == M_SHOT && ((newpos.y + h/2 < 0 || newpos.y + h/2 > F_WIDTH) || (newpos.x + w/2 < 0 || newpos.x + w/2 > F_WIDTH))){
-		gMob[ct].state = DEAD;
+		gMob[ct].hp = 0;
 	}
 
 	/* mob -> キャラ */
@@ -836,7 +854,7 @@ Pos MoveMob(int ct, int type, int id, Pos pos, int w, int h, int dir, int speed)
 			newpos = pos;
 			if(type == M_SHOT){
 				gChara[i].hp -= gMob[ct].atk;
-				gMob[ct].state = DEAD;
+				gMob[ct].hp = 0;
 			}
 		}
 	}
@@ -848,11 +866,51 @@ Pos MoveMob(int ct, int type, int id, Pos pos, int w, int h, int dir, int speed)
 		newpos = pos;
 		if(type == M_SHOT){
 			gBoss.hp -= gMob[ct].atk;
-			gMob[ct].state = DEAD;
+			gMob[ct].hp = 0;
 		}
 	}
 
 	return newpos;
+}
+
+/*****************************************************************
+関数名 : Bomb
+機能	: 爆発のダメージ処理
+引数	: bomb : 爆発の種類(atk, 半径r)  id : 爆発させたキャラの番号  pos : 爆発の中心
+出力	: なし
+*****************************************************************/
+void Bomb(int bomb, int id, Pos pos){
+	int i, n;
+	for(i=0; i<MAX_USEBOMB; i++){
+		if(gBomb[i].bflg == 0){
+			n = i;
+			gBomb[i].bomb	= bomb;
+			gBomb[i].pos.x	= pos.x;
+			gBomb[i].pos.y	= pos.y;
+			gBomb[i].atk	= bombData[bomb].atk;
+			gBomb[i].r		= bombData[bomb].r;
+			gBomb[i].w		= bombData[bomb].w;
+			gBomb[i].h		= bombData[bomb].h;
+			gBomb[i].anipat	= bombData[bomb].anipat;
+			gBomb[i].bflg	= 1;
+			gBomb[i].bcount	= 0;
+			break;
+		}
+	}
+
+	for(i=0; i<CT_NUM; i++){
+		if((id == BOSS || (tState == VS_MODE && i != id)) && gChara[i].state == LIVING &&
+			pos.x - gBomb[n].r <= gChara[i].pos.x + S_SIZE && pos.x + gBomb[n].r >= gChara[i].pos.x &&
+			pos.y - gBomb[n].r <= gChara[i].pos.y + S_SIZE && pos.y + gBomb[n].r >= gChara[i].pos.y){
+			gChara[i].hp -= gBomb[n].atk;
+		}
+	}
+
+	if(tState == ADVENTURE && id != BOSS && gBoss.state == LIVING &&
+		pos.x - gBomb[n].r <= gBoss.pos.x + gBoss.w && pos.x + gBomb[n].r >= gBoss.pos.x &&
+		pos.y - gBomb[n].r <= gBoss.pos.y + gBoss.h && pos.y + gBomb[n].r >= gBoss.pos.y){
+		gBoss.hp -= gBomb[n].atk;
+	}
 }
 
 /*****************************************************************
@@ -953,9 +1011,6 @@ void MoveShot()
 						gShot[i].state = DEAD;
 					}
 					gMob[j].hp -= gShot[i].atk;
-					if(gMob[j].hp <= 0 ){
-						gMob[j].state = DEAD;
-					}
 			}
 				}
 				/* 対戦モード */
@@ -1040,20 +1095,29 @@ void CheckSpell(){
 				if((nowcommand-4) % 4 == 0 && count == 0) //4の倍数
 					gChara[i].sflg = 1;
 				break;
+			case ARMOR_STAR:
+				if(nowcommand == 2 && count == 0)
+					gChara[i].sflg = 1;
+				break;
 			default:
 				break;
 			}
 	}
 
-	if(gBoss.state == LIVING && gBoss.sflg == 0)
+	if(tState == ADVENTURE && gBoss.state == LIVING && gBoss.sflg == 0){
 		switch(gBoss.no){
 		case SENKOUSHA:
 			if(nowcommand == 2 && count == 0)
 				gBoss.sflg = 1;
 			break;
+		case SUDACHI:
+			if((nowcommand-4) % 4 == 0 && count == 0)
+				gBoss.sflg = 1;
+			break;
 		default:
 			break;
 		}
+	}
 }
 
 /*****************************************************************
@@ -1074,12 +1138,22 @@ void UseSpell(){
 				MakeMob(i, gGun[GUN_MISSILE], spos, gChara[i].dir, 0);
 				gChara[i].sflg = 0;
 				break;
+			case ARMOR_STAR:
+				if(count % (MAX_COUNT/MAX_COUNT) == 0){
+					spos.x = rand() % (F_WIDTH - 200) + 100;
+					spos.y = rand() % (HEIGHT - 200) + 100;
+					Bomb(B_STAR, i, spos);
+					gChara[i].scount++;
+				}
+				if(gChara[i].scount == 10000)
+					gChara[i].sflg = 0;
+				break;
 			default:
 				break;
 			}
 	}
 
-	if(gBoss.state == LIVING && gBoss.sflg == 1)
+	if(tState == ADVENTURE && gBoss.state == LIVING && gBoss.sflg == 1){
 		switch(gBoss.no){
 		case SENKOUSHA:
 			spos.x = gBoss.pos.x + gBoss.w / 2;
@@ -1090,7 +1164,21 @@ void UseSpell(){
 			}
 			if(gBoss.scount == 8)
 				gBoss.sflg = 0;
+			break;
+		case SUDACHI:
+			spos.x = gBoss.pos.x + gBoss.w / 2;
+			spos.y = gBoss.pos.y + gBoss.h / 2;
+			if(count % 3 == 0){
+				MakeMob(BOSS, gGun[GUN_FIRE], spos, gBoss.scount*15, 0);
+				gBoss.scount++;
+			}
+			if(gBoss.scount == 24)
+				gBoss.sflg = 0;
+			break;
+		default:
+			break;
 		}
+	}
 }
 
 /*****************************************************************
@@ -1101,6 +1189,7 @@ void UseSpell(){
 *****************************************************************/
 void CheckDestroy(){
 	int i, j;
+	Pos bpos;
 	/* プレイヤーの消滅 */
 	for(i=0; i<CT_NUM; i++){
 		if(gChara[i].hp <= 0 && gChara[i].state == LIVING){
@@ -1133,6 +1222,19 @@ void CheckDestroy(){
 			}
 		}
 	}
+
+	/* mobの消滅 */
+	for(i=0; i<MAX_USEMOB; i++){
+		if(gMob[i].hp <= 0 && gMob[i].state == LIVING){
+			gMob[i].state = DEAD;
+			if(gMob[i].bomb != -1){
+				bpos.x = gMob[i].pos.x + gMob[i].w/2;
+				bpos.y = gMob[i].pos.y + gMob[i].h/2;
+				Bomb(gMob[i].bomb, gMob[i].id, bpos);//makebomb
+			}
+		}
+	}
+
 	/* ボスの消滅 */
 	if(gBoss.hp <= 0 && gBoss.state == LIVING){
 		if(gBoss.next == DELETE){
@@ -1154,6 +1256,14 @@ void CheckDestroy(){
 		if(gBoss.dcount == MAX_DCOUNT){
 			win = 1;
 			mState = MAIN_RESULT;
+		}
+	}
+
+	for(i=0; i<MAX_USEBOMB; i++){
+		if(gBomb[i].bflg == 1){
+			gBomb[i].bcount++;
+			if(gBomb[i].bcount == MAX_BCOUNT)
+				gBomb[i].bflg = 0;
 		}
 	}
 }

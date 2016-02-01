@@ -21,7 +21,8 @@ static char MobImgFile[MAX_MOB][16] =	{"img/mob00.png", "img/mob01.png", "img/mo
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
-static char BombImgFile[] = "img/bomb.png";
+static char BombImgFile[MAX_BOMB][16] = {"img/bomb01.png", "img/bomb02.png"};
+static char DBombImgFile[] = "img/bomb.png";
 static char ChooseImgFile[] = "img/choose.png";
 static char CommandImgFile[]    = "img/command01.png";
 static char MiniCommandImgFile[]    = "img/command02.png";
@@ -39,7 +40,8 @@ static SDL_Surface *MobWindow[MAX_MOB];
 static SDL_Surface *GunWindow;
 static SDL_Surface *ArmorWindow;
 static SDL_Surface *ArrowWindow;
-static SDL_Surface *BombWindow;
+static SDL_Surface *BombWindow[MAX_BOMB];
+static SDL_Surface *DBombWindow;
 static SDL_Surface *ChooseWindow;
 static SDL_Surface *CommandWindow;
 static SDL_Surface *MiniCommandWindow;
@@ -58,6 +60,7 @@ static void DrawCount();
 static void DrawShot();
 static void DrawMainCommand();
 static void DrawBomb();
+static void DrawSpell();
 static void DrawResult();
 static void WindowEvent(SDLKey key);
 
@@ -148,8 +151,17 @@ int InitWindow()
     	    return -1;
     	}
 
-    BombWindow = IMG_Load(BombImgFile);
-        if(BombWindow == NULL){
+    for(i=0; i<2; i++){
+    	BombWindow[i] = IMG_Load(BombImgFile[i]);
+    	if(BombWindow[i] == NULL){
+    		printf("failed to open bomb image.");
+    		return -1;
+    	}
+
+    }
+
+    DBombWindow = IMG_Load(DBombImgFile);
+        if(DBombWindow == NULL){
         	printf("failed to open bomb image.");
         	return -1;
         }
@@ -340,6 +352,7 @@ void DrawMain()
 		DrawShot();
 		DrawMainCommand();
 		DrawBomb();
+		DrawSpell();
 	}
 	SDL_Flip(gMainWindow);
 }
@@ -619,11 +632,10 @@ void DrawMainCommand(){
 	}
 }
 
-
 /*****************************************************************
-関数名 : DrawResult
+関数名 : DrawBomb
 機能	: 爆発を表示する
-引数	: pos : 爆破箇所
+引数	: なし
 出力	: なし
 *****************************************************************/
 void DrawBomb(){
@@ -643,13 +655,37 @@ void DrawBomb(){
 	if(gBoss.dcount < MAX_DCOUNT && gBoss.state == DEAD){
 		rect.src.x = 0;
 		rect.src.y = 0;
-		rect.src.w = BombWindow->w;
-		rect.src.h = BombWindow->h;
+		rect.src.w = DBombWindow->w;
+		rect.src.h = DBombWindow->h;
 		rect.dst.x = gBoss.pos.x + gBoss.w / 2 - rect.src.w / 2;
 		rect.dst.y = gBoss.pos.y + gBoss.h / 2 - rect.src.h / 2;
-		SDL_BlitSurface(BombWindow, &(rect.src), gMainWindow, &(rect.dst));
+		SDL_BlitSurface(DBombWindow, &(rect.src), gMainWindow, &(rect.dst));
+	}
+
+	for(i=0; i<MAX_USEBOMB; i++){
+		if(gBomb[i].bflg == 1){
+			if(gBomb[i].anipat <= 1)
+				rect.src.x = 0;
+			else{
+				rect.src.x = gBomb[i].w * (gBomb[i].bcount/(MAX_BCOUNT / gBomb[i].anipat));//gBomb[i].anipat * (gBomb[i].bcount/5 + 1) / MAX_BCOUNT;
+			}
+			rect.src.y = 0;
+			rect.src.w = gBomb[i].w;
+			rect.src.h = gBomb[i].h;
+			rect.dst.x = gBomb[i].pos.x - rect.src.w / 2;
+			rect.dst.y = gBomb[i].pos.y - rect.src.h / 2;
+			SDL_BlitSurface(BombWindow[gBomb[i].bomb], &(rect.src), gMainWindow, &(rect.dst));
+		}
 	}
 }
+
+/*****************************************************************
+関数名 : DrawSpell
+機能	: Spell発動時の挙動を表示する
+引数	: なし
+出力	: なし
+*****************************************************************/
+void DrawSpell(){}
 
 /*****************************************************************
 関数名 : DrawResult

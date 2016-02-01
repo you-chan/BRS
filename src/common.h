@@ -27,9 +27,11 @@
 #define MAX_COMMAND 6		/* コマンドの最大格納数 */
 #define MAX_BOSSCOMMAND 8	/* ボス用コマンドの最大格納数 */
 #define MAX_SHOT	300
-#define MAX_USEMOB	50		/* 使用可能なMobの数 */
+#define MAX_USEMOB	100		/* 使用可能なMobの数 */
+#define MAX_USEBOMB 100	/* 一度に爆発可能な数 */
 #define MAX_COUNT	20		/* 最大カウント、減らすほど速度up */
 #define MAX_DCOUNT 50
+#define MAX_BCOUNT 25
 #define FPS		25		/* フレームパーセク */
 
 #define PLAYER 0
@@ -110,7 +112,8 @@ enum{
 	ARMOR_MIDDLE	= 1, /* 中 */
 	ARMOR_HEAVY		= 2, /* 重 */
 	ARMOR_MISSILE	= 3,
-	MAX_ARMOR		= 4,
+	ARMOR_STAR		= 4,
+	MAX_ARMOR		= 5,
 };
 
 /* mobのタイプ */
@@ -125,11 +128,15 @@ enum{
 	M_SHOT	= 1		/* ミサイル */
 };
 
-/* ショットのタイプ */
+/* ショット,爆発のタイプ */
 enum{
 	SHOT	= 0,
 	LASER	= 1,
-	MOB		= 2
+	MOB		= 2,
+
+	B_MISSILE	= 0,
+	B_STAR		= 1,
+	MAX_BOMB = 2	/* 発生可能な爆発の数 */
 };
 
 /* ボスの種類 */
@@ -198,6 +205,27 @@ typedef struct{
     double y;
 } Pos;
 
+/* 爆発の情報 */
+typedef struct{
+	int atk;	/* 爆発の火力 */
+	int r;		/* 爆発の半径 */
+	int w;		/* 画像の幅 */
+	int h;		/* 画像の高さ */
+	int anipat;	/* アニメの枚数 */
+}BombData;
+
+typedef struct{
+	int bomb;	/* 爆発の種類 */
+	Pos pos;	/* 爆発の中心座標 */
+	int atk;
+	int r;
+	int w;		/* 画像の幅 */
+	int h;		/* 画像の高さ */
+	int anipat;	/* アニメの枚数 */
+	int bflg;
+	int bcount;
+}BombInfo;
+
 /* Mobの情報 */
 typedef struct{
 	int type;		/* 小型ロボ or ミサイル */
@@ -209,29 +237,31 @@ typedef struct{
 	int w;
 	int h;
 	int anipat;		/* アニメのパターン */
+	int bomb;
 } MobData;
 
 typedef struct{
-	int no;							/* 個体 */
+	int no;						/* 個体 */
 	int type;
-	int id;							/* 所有者 */
-    Pos pos;						/* 発射座標 */
+	int id;						/* 所有者 */
+    Pos pos;					/* 発射座標 */
 	CharaState state;
-    int dir;						/* キャラクターの角度 */
-    int startdir;					/* 変更開始時の角度 */
-    int goaldir;					/* 変更後の角度 */
+    int dir;					/* キャラクターの角度 */
+    int startdir;				/* 変更開始時の角度 */
+    int goaldir;				/* 変更後の角度 */
     int command[MAX_COMMAND];
     int cnum;
-	int gun;						/* 装備中の武器 */
-	int maxhp;						/* 最大HP */
-	int hp;							/* 現在HP */
+	int gun;					/* 装備中の武器 */
+	int maxhp;					/* 最大HP */
+	int hp;						/* 現在HP */
 	int atk;
 	int speed;
 	int delay;
 	int w;
 	int h;
-	int anipat;						/* アニメのパターン */
-	int anipatnum;					/* アニメのパターンの最大数 */
+	int anipat;					/* アニメのパターン */
+	int anipatnum;				/* アニメのパターンの最大数 */
+	int bomb;
 } MobInfo;
 
 /* キャラクターの情報 */
@@ -328,6 +358,8 @@ CommandState cState;
 GunInfo gGun[MAX_GUN];
 ArmorInfo gArmor[MAX_ARMOR];
 ShotInfo gShot[MAX_SHOT];
+BombData bombData[MAX_BOMB];
+BombInfo gBomb[MAX_USEBOMB];
 CharaInfo gChara[MAX_CT];
 BossData bData[MAX_BOSS];
 BossInfo gBoss;
