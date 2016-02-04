@@ -32,6 +32,7 @@
 #define MAX_COUNT	20		/* 最大カウント、減らすほど速度up */
 #define MAX_DCOUNT 50
 #define MAX_BCOUNT 25
+#define MAX_SCOUNT 20
 #define FPS		25		/* フレームパーセク */
 
 #define PLAYER 0
@@ -98,28 +99,30 @@ enum{
 	GUN_MSHOT		= 5,
 	GUN_5SHOT		= 6, /* 5ショット */
 	GUN_3LASER		= 7, /* 3レーザー */
-	GUN_NUCLEAR		= 8,
-	GUN_HOMO0		= 9,
-	GUN_HOMO1		= 10,
+	GUN_RMILK		= 8,
+	GUN_SLIME		= 9,
+	GUN_EISEI		= 10,
 	GUN_MISSILE		= 11,
 	GUN_FIRE		= 12,
+	GUN_2SHOT		= 13, /* 2ショット */
+	GUN_FSHOT		= 14,
 
-	MAX_GUN			= 13, /* ボス用の武器も含めた武器の数 */
+	MAX_GUN			= 15, /* ボス用の武器も含めた武器の数 */
 	MAX_PLAYERGUN	= 4, /* プレイヤーが使用可能な武器の数 */
 	MAX_BOSSGUN		= 3, /* ボスが一度に使用可能な武器の数 */
 
-	ARMOR_LIGHT		= 0, /* 軽 */
-	ARMOR_MIDDLE	= 1, /* 中 */
-	ARMOR_HEAVY		= 2, /* 重 */
-	ARMOR_MISSILE	= 3,
-	ARMOR_STAR		= 4,
+	ARMOR_ATKUP		= 0,//防具
+	ARMOR_HEAL		= 1,
+	ARMOR_MISSILE	= 2,
+	ARMOR_STAR		= 3,
+	ARMOR_BOMB		= 4,
 	MAX_ARMOR		= 5,
 };
 
 /* mobのタイプ */
 enum{
-	HOMO0	= 0,
-	HOMO1	= 1,
+	M_SLIME	= 0,
+	EISEI	= 1,
 	MISSILE	= 2,
 	FIRE	= 3,
 	MAX_MOB	= 4,
@@ -136,19 +139,21 @@ enum{
 
 	B_MISSILE	= 0,
 	B_STAR		= 1,
-	MAX_BOMB = 2	/* 発生可能な爆発の数 */
+	B_SELF		= 2,
+	B_SLIME		= 3,
+	B_METEO		= 4,
+	MAX_BOMB 	= 5	/* 発生可能な爆発の数 */
 };
 
 /* ボスの種類 */
 enum{
-	SENKOUSHA		= 0,
-	GAHARA			= 1,
-	SUDACHI			= 2,
-	SHIBBOLETH		= 3,
-	HOMO			= 4,
-	MAX_BOSS		= 5,
+	WASHI		= 0,
+	SLIME		= 1,
+	BALDER		= 2,
+	ASTERIOS	= 3,
+	MAX_BOSS	= 4,
 
-	DELETE			= -1
+	DELETE		= -1
 };
 
 /* ボスの動作 */
@@ -156,13 +161,11 @@ enum{
 	MOVE_NOTHING	= 0,
 	MOVE_UP			= 1,
 	MOVE_DOWN		= 2,
-	MOVE_LEFT		= 3,
-	MOVE_RIGHT		= 4,
-	MOVE_RANDOM		= 5,
-	MOVE_TURN_S		= 6,
-	MOVE_TURN_L		= 7,
-	MOVE_SHAKE_W	= 8,
-	MOVE_SHAKE_H	= 9,
+	MOVE_RIGHTUP	= 3,
+	MOVE_RIGHTDOWN	= 4,
+	MOVE_LEFTUP		= 5,
+	MOVE_LEFTDOWN	= 6,
+	MOVE_TURN		= 7,
 
 	BOSS_SCOPE		= 1,
 	BOSS_FIRE		= 2
@@ -216,6 +219,7 @@ typedef struct{
 
 typedef struct{
 	int bomb;	/* 爆発の種類 */
+	int id;
 	Pos pos;	/* 爆発の中心座標 */
 	int atk;
 	int r;
@@ -344,12 +348,14 @@ typedef struct{
     int gun; /* 8:照準, 9:発射 */
 } CommandInfo;
 
+int field;
 int CT_NUM;		/* 合計人数 */
 int count;		/* 移動処理のためのカウント */
 int nowcommand;	/* 現在適用されているコマンド */
 int win;		/* 勝敗, 1:勝ち, 2:負け */
 int cflg;		/* コマンド変更フラグ */
 int startcount;	/* はじめる前にカウントとかしたいじゃん */
+int bflg[MAX_BOSS];	/* 撃破したら1 */
 GameState gState;
 TitleState tState;
 EditState eState;

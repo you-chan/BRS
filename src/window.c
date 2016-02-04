@@ -16,17 +16,24 @@ static char ResultImgFile[2][16] = {"img/win.png", "img/lose.png"};
 static char NumberImgFile[] = {"img/number.png"};
 static char ShipImgFile[4][16]  =
 	{"img/ship01.png", "img/ship02.png", "img/ship03.png", "img/ship04.png"};
-static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png", "img/boss03.png", "img/boss04.png"};
+static char BossImgFile[MAX_BOSS][16] = {"img/boss00.png", "img/boss01.png", "img/boss02.png", "img/boss03.png"};
+static char GuideImgFile[MAX_BOSS][16] = {"img/guide00.png", "img/guide01.png", "img/guide02.png", "img/guide03.png"};
+static char GuidemanImgFile[2][32] = {"img/guideman00.png", "img/guideman01.png"};
 static char MobImgFile[MAX_MOB][16] =	{"img/mob00.png", "img/mob01.png", "img/mob02.png", "img/mob03.png"};
 static char GunImgFile[] = "img/gun.png";
 static char ArmorImgFile[] = "img/armor.png";
 static char ArrowImgFile[] = "img/arrow.png";
-static char BombImgFile[MAX_BOMB][16] = {"img/bomb01.png", "img/bomb02.png"};
+static char ArrowBossImgFile[] = "img/arrowboss.png";
+static char SpellImgFile[] = "img/spell.png";
+static char BombImgFile[MAX_BOMB][16] = {"img/bomb00.png", "img/bomb01.png", "img/bomb02.png", "img/bomb03.png", "img/bomb04.png"};
 static char DBombImgFile[] = "img/bomb.png";
 static char ChooseImgFile[] = "img/choose.png";
 static char CommandImgFile[]    = "img/command01.png";
 static char MiniCommandImgFile[]    = "img/command02.png";
-static char InfoImgFile[] = "img/info.png";
+static char EditInfoImgFile[] = "img/editinfo.png";
+static char CommandInfoImgFile[] = "img/commandinfo.png";
+static char EditImgFile[] = "img/edit.png";
+static char FieldImgFile[3][16] = {"img/field00.png", "img/field01.png", "img/field02.png"};
 
 static SDL_Surface *gMainWindow;
 static SDL_Surface *BRSWindow;
@@ -36,16 +43,23 @@ static SDL_Surface *ResultWindow[2];
 static SDL_Surface *NumWindow;
 static SDL_Surface *ShipWindow[MAX_CT];
 static SDL_Surface *BossWindow[MAX_BOSS];
+static SDL_Surface *GuideWindow[MAX_BOSS];
+static SDL_Surface *GuidemanWindow[2];
 static SDL_Surface *MobWindow[MAX_MOB];
 static SDL_Surface *GunWindow;
 static SDL_Surface *ArmorWindow;
 static SDL_Surface *ArrowWindow;
+static SDL_Surface *ArrowBossWindow;
+static SDL_Surface *SpellWindow;
 static SDL_Surface *BombWindow[MAX_BOMB];
 static SDL_Surface *DBombWindow;
 static SDL_Surface *ChooseWindow;
 static SDL_Surface *CommandWindow;
 static SDL_Surface *MiniCommandWindow;
-static SDL_Surface *InfoWindow;
+static SDL_Surface *CommandInfoWindow;
+static SDL_Surface *EditWindow;
+static SDL_Surface *EditInfoWindow;
+static SDL_Surface *FieldWindow[3];
 static SDL_Joystick *joystick; //ジョイスティックを特定・利用するための構造体
 
 /* 画像転送用 */
@@ -129,7 +143,26 @@ int InitWindow()
     		printf("failed to open boss image.");
     		return -1;
     	}
+
+    	GuideWindow[i] = IMG_Load(GuideImgFile[i]);
+    	if(GuideWindow[i] == NULL){
+    		printf("failed to open guide image.");
+    		return -1;
+    	}
     }
+
+    GuidemanWindow[0] = IMG_Load(GuidemanImgFile[0]);
+    GuidemanWindow[1] = IMG_Load(GuidemanImgFile[1]);
+    if(GuidemanWindow[0] == NULL || GuidemanWindow[1] == NULL){
+    	printf("failed to open guideman image.");
+    	return -1;
+    }
+
+    GunWindow = IMG_Load(GunImgFile);
+        if(GunWindow == NULL){
+        	printf("failed to open gun image.");
+        	return -1;
+        }
 
     for(i=0; i<MAX_MOB; i++){
     	MobWindow[i] = IMG_Load(MobImgFile[i]);
@@ -139,19 +172,19 @@ int InitWindow()
     	}
     }
 
-    GunWindow = IMG_Load(GunImgFile);
-    	if(GunWindow == NULL){
-    		printf("failed to open gun image.");
-    		return -1;
-    	}
-
     ArmorWindow = IMG_Load(ArmorImgFile);
-    	if(ArmorWindow == NULL){
-    		printf("failed to open armor image.");
-    	    return -1;
-    	}
+		if(ArmorWindow == NULL){
+			printf("failed to open armor image.");
+			return -1;
+		}
 
-    for(i=0; i<2; i++){
+	SpellWindow = IMG_Load(SpellImgFile);
+		if(SpellWindow == NULL){
+			printf("failed to open spell image.");
+			return -1;
+		}
+
+    for(i=0; i<MAX_BOMB; i++){
     	BombWindow[i] = IMG_Load(BombImgFile[i]);
     	if(BombWindow[i] == NULL){
     		printf("failed to open bomb image.");
@@ -172,6 +205,12 @@ int InitWindow()
         	return -1;
         }
 
+    ArrowBossWindow = IMG_Load(ArrowBossImgFile);
+           if(ArrowBossWindow == NULL){
+            	printf("failed to open arrow image.");
+             	return -1;
+           }
+
     ChooseWindow = IMG_Load(ChooseImgFile);
    		if(ChooseWindow == NULL){
     		printf("failed to open choose image.");
@@ -190,11 +229,31 @@ int InitWindow()
         return -1;
     }
 
-    InfoWindow = IMG_Load(InfoImgFile);
-    	if(InfoWindow == NULL){
+    CommandInfoWindow = IMG_Load(CommandInfoImgFile);
+    	if(CommandInfoWindow == NULL){
         		printf("failed to open info image.");
         		return -1;
         }
+
+    EditWindow = IMG_Load(EditImgFile);
+    	    if(EditWindow == NULL){
+    	        printf("failed to open edit image.");
+    	        return -1;
+    	    }
+
+    EditInfoWindow = IMG_Load(EditInfoImgFile);
+    	if(EditInfoWindow == NULL){
+    	    printf("failed to open info image.");
+    	       return -1;
+    	}
+
+    	for(i=0; i<3; i++){
+    		FieldWindow[i] = IMG_Load(FieldImgFile[i]);
+        	if(FieldWindow[i] == NULL){
+        	    printf("failed to open field image.");
+        	       return -1;
+        	}
+    	}
 
 	/* メインウインドウの作成 */
 	if((gMainWindow = SDL_SetVideoMode(WIDTH, HEIGHT, 32, SDL_SWSURFACE)) == NULL) {
@@ -237,16 +296,16 @@ void DrawTitle()
 	rect.src.x = rect.src.y = 0;
 	rect.src.w = 360;
 	rect.src.h = 60;
-	rect.dst.x = (WIDTH - 360)/2;
+	rect.dst.x = (500 - 360)/2;
 	for(i=0; i<MAX_TITLE; i++){
 		rect.src.y = i * 60;
-		rect.dst.y = HEIGHT*((i*2)+1)/8+120;
+		rect.dst.y = HEIGHT*((i*2)+1)/16+60;
 		SDL_BlitSurface(TitleWindow, &(rect.src), gMainWindow, &(rect.dst));
 	}
 
 	/*選択中でないタブを灰色に*/
-	boxColor(gMainWindow, (WIDTH-360)/2, HEIGHT*(((tState+1)*2+1)%6)/8+120, (WIDTH-360)/2+360, HEIGHT*(((tState+1)*2+1)%6)/8+180, 0x00000060);
-	boxColor(gMainWindow, (WIDTH-360)/2, HEIGHT*(((tState*2)+5)%6)/8+120, (WIDTH-360)/2+360, HEIGHT*(((tState*2)+5)%6)/8+180, 0x00000060);
+	boxColor(gMainWindow, (500-360)/2, HEIGHT*(((tState+1)*2+1)%6)/16+60, (500-360)/2+360, HEIGHT*(((tState+1)*2+1)%6)/16+120, 0x00000075);
+	boxColor(gMainWindow, (500-360)/2, HEIGHT*(((tState*2)+5)%6)/16+60, (500-360)/2+360, HEIGHT*(((tState*2)+5)%6)/16+120, 0x00000075);
 	SDL_Flip(gMainWindow);
 }
 
@@ -260,18 +319,34 @@ void DrawBossEdit()
 {
 	Rect rect = {{0, 0, 0, 0}, {0, 0}};
 
-	/* 背景を灰色にする */
-	SDL_FillRect(gMainWindow,NULL,0x808080);
+//	/* 背景を灰色にする */
+//	SDL_FillRect(gMainWindow,NULL,0x808080);
 	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
 
-	rect.src.x = 100 * gBoss.no;
+	if(gBoss.no == ASTERIOS && bflg[0] == 1 && bflg[1] == 1 && bflg[2] == 1)
+		rect.src.x = F_WIDTH;
+	else
+		rect.src.x = 0;
 	rect.src.y = 0;
-	rect.src.w = 100;
-	rect.src.h = 100;
-	rect.dst.x = (F_WIDTH - 100)/2;
-	rect.dst.y = (HEIGHT - 100) / 2;
+	rect.src.w = WIDTH;
+	rect.src.h = F_WIDTH;
+	rect.dst.x = 0;
+	rect.dst.y = 0;
 
-	SDL_BlitSurface(NumWindow, &(rect.src), gMainWindow, &(rect.dst));
+	SDL_BlitSurface(GuideWindow[gBoss.no], &(rect.src), gMainWindow, &(rect.dst));
+	rect.src.x = 0;
+	rect.src.w = F_WIDTH;
+	SDL_BlitSurface(ArrowBossWindow, &(rect.src), gMainWindow, &(rect.dst));
+	if(bflg[gBoss.no] == 1){
+		filledCircleColor(gMainWindow, F_WIDTH-50, 50, 40, 0xFF0000FF);
+		filledCircleColor(gMainWindow, F_WIDTH-50, 50, 20, 0x202020FF);
+	}
+	rect.src.w = rect.src.h = WIDTH - F_WIDTH;
+	rect.dst.x = F_WIDTH;
+	rect.dst.y = HEIGHT-rect.src.h;
+	if(tState == ADVENTURE)
+		SDL_BlitSurface(GuidemanWindow[0], &(rect.src), gMainWindow, &(rect.dst));
+
 	SDL_Flip(gMainWindow);
 }
 
@@ -295,7 +370,7 @@ void DrawEdit()
 	rect.src.h = 768;
 	rect.dst.x = F_WIDTH;
 	rect.dst.y = 0;
-	SDL_BlitSurface(InfoWindow, &(rect.src), gMainWindow, &(rect.dst));
+	SDL_BlitSurface(EditInfoWindow, &(rect.src), gMainWindow, &(rect.dst));
 
 	rect.src.x = 0;
 	rect.src.y = 0;
@@ -325,6 +400,29 @@ void DrawEdit()
 	rect.dst.x = 5 * F_WIDTH /8;
 	SDL_BlitSurface(ChooseWindow, &(rect.src), gMainWindow, &(rect.dst));
 
+	if(eState == EDIT_GUN || eState == EDIT_ARMOR){
+		if(eState == EDIT_GUN){
+			rect.src.x = gChara[0].gun*256;
+			rect.src.y = 0;
+		}
+		else if(eState == EDIT_ARMOR){
+			rect.src.x = gChara[0].armor*256;
+			rect.src.y = 128;
+		}
+		rect.src.w = 256;
+		rect.src.h = 128;
+		rect.dst.x = F_WIDTH;
+		rect.dst.y = 300;
+		SDL_BlitSurface(EditWindow, &(rect.src), gMainWindow, &(rect.dst));
+	}
+
+	rect.src.x = 0;
+	rect.src.y = 0;
+	rect.src.w = rect.src.h = 256;
+	rect.dst.x = F_WIDTH;
+	rect.dst.y = HEIGHT-256;
+	SDL_BlitSurface(GuidemanWindow[1], &(rect.src), gMainWindow, &(rect.dst));
+
 	SDL_Flip(gMainWindow);
 }
 
@@ -339,8 +437,9 @@ void DrawMain()
 	SDL_FillRect(gMainWindow,NULL,0x101010);
 	if(mState == MAIN_RESULT) //結果画面
 		DrawResult();
-	else
+	else{
 		DrawShip();
+	}
 
 	if(mState == MAIN_COMMAND) //コマンド入力
 		DrawCommand();
@@ -350,9 +449,9 @@ void DrawMain()
 	}
 	else if(mState == MAIN_MOVE){ //コマンド適用
 		DrawShot();
-		DrawMainCommand();
 		DrawBomb();
 		DrawSpell();
+		DrawMainCommand();
 	}
 	SDL_Flip(gMainWindow);
 }
@@ -371,13 +470,13 @@ void DrawCommand()
 	/* 選択中のコマンドの描画 */
 	boxColor(gMainWindow, 0, 0, F_WIDTH, HEIGHT, 0x00000040);
 
-	rect.src.x = 256;
+	rect.src.x = 0;
 	rect.src.y = 0;
 	rect.src.w = 256;
 	rect.src.h = HEIGHT;
 	rect.dst.x = F_WIDTH;
 	rect.dst.y = 0;
-	SDL_BlitSurface(InfoWindow, &(rect.src), gMainWindow, &(rect.dst));
+	SDL_BlitSurface(CommandInfoWindow, &(rect.src), gMainWindow, &(rect.dst));
 
 	rect.src.x = rect.src.y = 0;
 	rect.src.w = 100;
@@ -450,6 +549,7 @@ void DrawShip()
 {
 	int i;
 	Rect rect = {{0, 0, F_WIDTH, HEIGHT}, {0, 0}};
+	SDL_BlitSurface(FieldWindow[field], &(rect.src), gMainWindow, &(rect.dst));
 
 	for(i=0; i<CT_NUM; i++){
 		if(gChara[i].state == LIVING){
@@ -603,6 +703,7 @@ void DrawShot()
 出力	: なし
 *****************************************************************/
 void DrawMainCommand(){
+	boxColor(gMainWindow, F_WIDTH, 0, WIDTH, HEIGHT, 0x000000FF);
 	int i, j, x, color;
 	Rect rect = {{0, 0, 0, 0}, {0, 0}};
 	if(gChara[0].cnum[gChara[0].ctype] <= 4)
@@ -643,13 +744,13 @@ void DrawBomb(){
 	Rect rect = {{0, 0, 0, 0}, {0, 0}};
 	for(i=0; i<CT_NUM; i++){
 		if(gChara[i].dcount < MAX_DCOUNT && gChara[i].state == DEAD){
-			rect.src.x = (gChara[i].dcount/ 2 % 8) * 300;
+			rect.src.x = 0;//(gChara[i].dcount/ 2 % 8) * 300;
 			rect.src.y = 0;
-			rect.src.w = 300;
-			rect.src.h = 300;
+			rect.src.w = 200;
+			rect.src.h = 200;
 			rect.dst.x = gChara[i].pos.x + S_SIZE / 2 - rect.src.w / 2;
 			rect.dst.y = gChara[i].pos.y + S_SIZE / 2 - rect.src.h / 2;
-			SDL_BlitSurface(BossWindow[1], &(rect.src), gMainWindow, &(rect.dst));
+			SDL_BlitSurface(DBombWindow, &(rect.src), gMainWindow, &(rect.dst));
 		}
 	}
 	if(gBoss.dcount < MAX_DCOUNT && gBoss.state == DEAD){
@@ -685,7 +786,48 @@ void DrawBomb(){
 引数	: なし
 出力	: なし
 *****************************************************************/
-void DrawSpell(){}
+void DrawSpell(){
+	int i;
+	Rect rect;
+	for(i=0; i<CT_NUM; i++){
+		if(gChara[i].state == LIVING && gChara[i].sflg == 1){
+			if(gChara[i].scount < MAX_SCOUNT){
+				boxColor(gMainWindow, 0, (i+1)*HEIGHT/(CT_NUM+1)-S_SIZE/2, F_WIDTH, (i+1)*HEIGHT/(CT_NUM+1)+S_SIZE/2, 0x000000C0);
+				boxColor(gMainWindow, (F_WIDTH-S_SIZE)/2, (i+1)*HEIGHT/(CT_NUM+1)-S_SIZE/2, (F_WIDTH+S_SIZE)/2,
+						(i+1)*HEIGHT/(CT_NUM+1)+S_SIZE/2, 0xFFD700FF);
+				rect.src.x = 0;
+				rect.src.y = 0;
+				rect.src.w = S_SIZE;
+				rect.src.h = S_SIZE;
+				rect.dst.x = (F_WIDTH - S_SIZE) / 2;
+				rect.dst.y = (i+1)*HEIGHT/(CT_NUM+1)-S_SIZE/2;
+				SDL_BlitSurface(ShipWindow[i], &(rect.src), gMainWindow, &(rect.dst));
+			}
+			else if((gChara[i].armor == ARMOR_ATKUP && gChara[i].scount < MAX_SCOUNT + FPS * 10) ||
+					(gChara[i].armor == ARMOR_HEAL && gChara[i].scount < MAX_SCOUNT + FPS * 3)){
+				rect.src.x = gChara[i].armor * S_SIZE;
+				rect.src.y = 0;
+				rect.src.w = S_SIZE;
+				rect.src.h = S_SIZE;
+				rect.dst.x = gChara[i].pos.x + S_SIZE/2;
+				rect.dst.y = gChara[i].pos.y - S_SIZE/2;
+				SDL_BlitSurface(SpellWindow, &(rect.src), gMainWindow, &(rect.dst));
+			}
+		}
+	}
+	if(gBoss.state == LIVING && gBoss.sflg == 1 && gBoss.scount < MAX_SCOUNT){
+		boxColor(gMainWindow, 0, (HEIGHT-gBoss.h)/2, F_WIDTH, (HEIGHT+gBoss.h)/2, 0x000000C0);
+		boxColor(gMainWindow, (F_WIDTH-gBoss.w)/2, (HEIGHT-gBoss.h)/2, (F_WIDTH+gBoss.w)/2, (HEIGHT+gBoss.h)/2, 0x800080FF);
+		rect.src.x = 0;
+		rect.src.y = 0;
+		rect.src.w = gBoss.w;
+		rect.src.h = gBoss.h;
+		rect.dst.x = (F_WIDTH - gBoss.w) / 2;
+		rect.dst.y = (HEIGHT - gBoss.h) / 2;
+		SDL_BlitSurface(BossWindow[gBoss.no], &(rect.src), gMainWindow, &(rect.dst));
+	}
+
+}
 
 /*****************************************************************
 関数名 : DrawResult
@@ -778,12 +920,13 @@ void WindowEvent(SDLKey key)
 			gState = GAME_TITLE;
 			break;
 		case SDLK_x:
+			if(gBoss.no != ASTERIOS || bflg[ASTERIOS] == 1 ||(bflg[WASHI] == 1 && bflg [SLIME] == 1 && bflg[BALDER] == 1))
 			gState = GAME_EDIT;
 			break;
-		case SDLK_UP: //コマンドの選択
+		case SDLK_RIGHT: //コマンドの選択
 			gBoss.no = (gBoss.no + 1) % MAX_BOSS;
 			break;
-		case SDLK_DOWN:
+		case SDLK_LEFT:
 			gBoss.no = (gBoss.no + MAX_BOSS - 1) % MAX_BOSS;
 			break;
 		default:
@@ -791,10 +934,10 @@ void WindowEvent(SDLKey key)
 		}
 		break;
 	case GAME_EDIT:
-		/* コマンド編集 */
+		/* 装備編集 */
 		switch(key){
 		case SDLK_z:
-			gState = GAME_BOSS;
+			gState = GAME_TITLE;
 			break;
 		case SDLK_x: //エディット->メインへ
 			if(eState == EDIT_DECIDE)
